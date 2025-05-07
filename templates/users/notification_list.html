@@ -1,0 +1,42 @@
+{% extends "users/dashboard_base.html" %}
+{% load i18n %}
+
+{% block dashboard_title %}{% trans "Notifications" %}{% endblock dashboard_title %}
+
+{% block dashboard_content %}
+<h2 class="text-xl font-semibold mb-4">{% trans "Notifications" %}</h2>
+
+{% if notifications %}
+    {# Add button to mark all as read - requires a separate view/logic #}
+    {# <div class="text-right mb-4">
+        <form method="post" action="{% url 'mark_all_notifications_read' %}">
+            {% csrf_token %}
+            <button type="submit" class="text-sm text-blue-600 hover:underline">{% trans "Mark all as read" %}</button>
+        </form>
+    </div> #}
+
+    <div class="space-y-3">
+        {% for notification in notifications %}
+            <div class="p-4 rounded-lg shadow-sm border-l-4 
+                        {% if not notification.is_read %}bg-blue-50 border-blue-500{% else %}bg-white border-gray-300{% endif %}">
+                <div class="flex justify-between items-start">
+                    <h3 class="font-semibold {% if not notification.is_read %}text-blue-800{% else %}text-gray-800{% endif %}">{{ notification.title }}</h3>
+                    <span class="text-xs text-gray-500">{{ notification.created_at|timesince }} {% trans "ago" %}</span>
+                </div>
+                <p class="text-sm mt-1 {% if not notification.is_read %}text-gray-700{% else %}text-gray-600{% endif %}">{{ notification.message }}</p>
+                {# Optional: Add link related to notification if applicable #}
+                {# {% if notification.related_url %}
+                    <a href="{{ notification.related_url }}" class="text-xs text-blue-600 hover:underline mt-1 inline-block">{% trans "View Details" %}</a>
+                {% endif %} #}
+            </div>
+        {% endfor %}
+    </div>
+
+    {# Pagination #}
+    {% include 'partials/pagination.html' %} {# Assumes a reusable pagination partial #}
+
+{% else %}
+    <p class="text-gray-600">{% trans "You have no notifications." %}</p>
+{% endif %}
+
+{% endblock dashboard_content %}

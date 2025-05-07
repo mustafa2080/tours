@@ -1,0 +1,93 @@
+/* ملف fonts.css */
+/* Poppins Regular 400 */
+@font-face {
+    font-family: 'Poppins';
+    font-style: normal;
+    font-weight: 400;
+    src: url('../fonts/poppins/poppins-v20-latin-400.woff2') format('woff2');
+    font-display: swap;
+  }
+  
+  /* Poppins Light 300 */
+  @font-face {
+    font-family: 'Poppins';
+    font-style: normal;
+    font-weight: 300;
+    src: url('../fonts/poppins/poppins-v20-latin-300.woff2') format('woff2');
+    font-display: swap;
+  }
+  
+  /* Poppins Medium 500 */
+  @font-face {
+    font-family: 'Poppins';
+    font-style: normal;
+    font-weight: 500;
+    src: url('../fonts/poppins/poppins-v20-latin-500.woff2') format('woff2');
+    font-display: swap;
+  }
+  
+  /* Poppins SemiBold 600 */
+  @font-face {
+    font-family: 'Poppins';
+    font-style: normal;
+    font-weight: 600;
+    src: url('../fonts/poppins/poppins-v20-latin-600.woff2') format('woff2');
+    font-display: swap;
+  }
+  
+  /* Poppins Bold 700 */
+  @font-face {
+    font-family: 'Poppins';
+    font-style: normal;
+    font-weight: 700;
+    src: url('../fonts/poppins/poppins-v20-latin-700.woff2') format('woff2');
+    font-display: swap;
+  }
+  
+  /* Font Awesome Brands */
+  @font-face {
+    font-family: 'Font Awesome 6 Brands';
+    font-style: normal;
+    font-weight: 400;
+    src: url('../fonts/font-awesome/fa-brands-400.woff2') format('woff2');
+    font-display: swap;
+  }
+  
+  /* Font Awesome Regular */
+  @font-face {
+    font-family: 'Font Awesome 6 Free';
+    font-style: normal;
+    font-weight: 400;
+    src: url('../fonts/font-awesome/fa-regular-400.woff2') format('woff2');
+    font-display: swap;
+  }
+  
+  /* Font Awesome Solid */
+  @font-face {
+    font-family: 'Font Awesome 6 Free';
+    font-style: normal;
+    font-weight: 900;
+    src: url('../fonts/font-awesome/fa-solid-900.woff2') format('woff2');
+    font-display: swap;
+  }
+  
+  /* CSS الأساسي للخطوط */
+  body {
+    font-family: 'Poppins', sans-serif;
+  }
+  
+  /* كلاسات Font Awesome */
+  .fa {
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+  }
+  
+  .fa-regular {
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 400;
+  }
+  
+  .fa-brands {
+    font-family: 'Font Awesome 6 Brands';
+    font-weight: 400;
+  }

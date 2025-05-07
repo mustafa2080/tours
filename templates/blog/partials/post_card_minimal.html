@@ -1,0 +1,23 @@
+{% load i18n static %}
+{# Expects a 'post' object in the context - Minimal version for sidebars etc. #}
+{# Assumes modeltranslation provides translated fields directly #}
+<div class="flex items-center space-x-3">
+    <a href="{{ post.get_absolute_url }}" class="flex-shrink-0">
+        {% if post.featured_image %}
+            <img src="{{ post.featured_image.url }}" alt="{{ post.title|default:post.slug }}" class="w-16 h-16 object-cover rounded"> {# Use direct title #}
+        {% else %}
+            <img src="{% static 'images/blog-placeholder.jpg' %}" alt="{% trans 'Placeholder Image' %}" class="w-16 h-16 object-cover rounded">
+        {% endif %}
+    </a>
+    <div>
+        <h4 class="text-sm font-semibold">
+            <a href="{{ post.get_absolute_url }}" class="hover:text-blue-600 line-clamp-2"> {# Limit title lines #}
+                {{ post.title|default:post.slug }} {# Use direct title #}
+            </a>
+        </h4>
+        <p class="text-xs text-gray-500 mt-1">
+            {{ post.published_at|date:"d M Y" }}
+        </p>
+    </div>
+</div>
+{# Removed {% with %} block #}

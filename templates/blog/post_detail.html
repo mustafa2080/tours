@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block title %}
+    {{ post.title|default:post.slug }} - {% trans "Blog" %} - {% trans "Tourism Project" %} {# Use direct title #}
+{% endblock title %}
+
+{% block extra_head %}
+{# Add CSS for code highlighting if needed #}
+{% endblock extra_head %}
+
+{% block content %}
+{# Assumes modeltranslation provides translated fields directly #}
+<div class="container mx-auto px-4 py-8">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+        {# Main Post Content #}
+        <main class="md:col-span-3">
+            <article class="bg-white p-6 rounded-lg shadow-md">
+                {# Post Header #}
+                <header class="mb-6 border-b pb-4">
+                    <h1 class="text-3xl md:text-4xl font-bold mb-3">{{ post.title|default:"Post Title Unavailable" }}</h1> {# Use direct title #}
+                    <div class="text-sm text-gray-500 flex items-center space-x-4">
+                        <span>
+                            <i class="fas fa-user mr-1"></i>
+                            {% if post.author %}
+                                {{ post.author.get_full_name|default:post.author.email }}
+                            {% else %}
+                                {% trans "Unknown Author" %}
+                            {% endif %}
+                        </span>
+                        <span>
+                            <i class="far fa-calendar-alt mr-1"></i>
+                            {{ post.published_at|date:"d M Y" }}
+                        </span>
+                        <span>
+                            <i class="far fa-folder-open mr-1"></i>
+                            {% for category in post.categories.all %}
+                                <a href="{% url 'blog:post_list_by_category' category_slug=category.slug %}" class="hover:text-blue-600">{{ category.name }}</a>{% if not forloop.last %}, {% endif %} {# Use direct name #}
+                            {% endfor %}
+                        </span>
+                        <span>
+                            <i class="far fa-eye mr-1"></i>
+                            {{ post.unique_views_count|default:post.view_count }} {% trans "Views" %}
+                        </span>
+                        <span>
+                            <i class="far fa-comments mr-1"></i>
+                             <a href="#comments" class="hover:text-blue-600">{{ post.comments_count }} {% trans "Comments" %}</a>
+                        </span>
+                    </div>
+                </header>
+
+                {# Featured Image #}
+                {% if post.featured_image %}
+                    <img src="{{ post.featured_image.url }}" alt="{{ post.title|default:post.slug }}" class="w-full h-auto object-cover rounded mb-6 shadow"> {# Use direct title #}
+                {% endif %}
+
+                {# Post Content #}
+                <div class="prose max-w-none mb-8">
+                    {# Render CKEditor content safely #}
+                    {{ post.content|safe }} {# Use direct content #}
+                </div>
+
+                {# Tags #}
+                {% if post.tags.all %}
+                <footer class="border-t pt-4 text-sm">
+                    <strong>{% trans "Tags" %}:</strong>
+                    {% for tag in post.tags.all %}
+                        <a href="{% url 'blog:post_list_by_tag' tag_slug=tag.slug %}" class="ml-2 inline-block bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-full px-3 py-1 text-xs">
+                            {{ tag.name }} {# Use direct name #}
+                        </a>
+                    {% endfor %}
+                </footer>
+                {% endif %}
+            </article>
+
+            {# Comments Section #}
+            <section id="comments" class="mt-10 bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-2xl font-semibold mb-6 border-b pb-2">{% trans "Comments" %} ({{ post.comments_count }})</h2>
+
+                {# Comment Form - Only for authenticated users #}
+                {% if user.is_authenticated %}
+                    <form method="post" class="mb-8">
+                        <h3 class="text-lg font-semibold mb-3">{% trans "Leave a Comment" %}</h3>
+                        {% csrf_token %}
+                        {{ comment_form.parent }} {# Hidden parent field #}
+
+                        <p class="text-sm mb-3">{% blocktrans with user_name=user.get_full_name|default:user.email %}Commenting as <strong>{{ user_name }}</strong>.{% endblocktrans %} <a href="{% url 'account_logout' %}?next={{ request.path }}" class="text-red-500 hover:underline text-xs">{% trans "Logout?" %}</a></p>
+
+                        <div class="mb-4">
+                            <label for="{{ comment_form.content.id_for_label }}" class="block text-sm font-medium text-gray-700">{{ comment_form.content.label }}</label>
+                            {{ comment_form.content }}
+                            {% if comment_form.content.errors %}<p class="text-red-500 text-xs mt-1">{{ comment_form.content.errors|first }}</p>{% endif %}
+                        </div>
+
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                            {% trans "Post Comment" %}
+                        </button>
+                    </form>
+                {% else %}
+                    <div class="bg-blue-50 p-4 rounded-lg mb-8 border border-blue-200">
+                        <h3 class="text-lg font-semibold mb-2 text-blue-800">{% trans "Join the conversation" %}</h3>
+                        <p class="mb-4 text-blue-700">{% trans "You must be logged in to post a comment." %}</p>
+                        <div class="flex space-x-4">
+                            <a href="{% url 'account_login' %}?next={{ request.path }}" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded transition-colors">
+                                {% trans "Log In" %}
+                            </a>
+                            <a href="{% url 'account_signup' %}?next={{ request.path }}" class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded transition-colors">
+                                {% trans "Register" %}
+                            </a>
+                        </div>
+                    </div>
+                {% endif %}
+
+                {# Display Comments #}
+                <div class="space-y-6">
+                    {% for comment in post.approved_comments %} {# Use prefetched approved_comments #}
+                        {% include 'blog/partials/comment.html' with comment=comment %}
+                    {% empty %}
+                        <p>{% trans "No comments yet. Be the first to comment!" %}</p>
+                    {% endfor %}
+                </div>
+            </section>
+
+        </main>
+
+        {# Sidebar #}
+        <aside class="md:col-span-1 h-fit sticky top-6">
+            {# Author Box - Optional #}
+            {% if post.author %}
+            <div class="bg-white p-4 rounded-lg shadow-md mb-6 text-center">
+                {% if post.author.profile_picture %}
+                    <img src="{{ post.author.profile_picture.url }}" alt="{{ post.author.get_full_name }}" class="w-20 h-20 rounded-full mx-auto mb-3">
+                {% endif %}
+                <h4 class="font-semibold">{{ post.author.get_full_name|default:post.author.email }}</h4>
+                {# Add author bio if available #}
+                {# <p class="text-sm text-gray-600 mt-1">Author bio...</p> #}
+            </div>
+            {% endif %}
+
+            {# Categories & Tags - Reuse from list view sidebar #}
+             {% if post.categories.all %} {# Use post.categories instead of context var #}
+            <div class="bg-white p-4 rounded-lg shadow-md mb-6">
+                <h3 class="text-lg font-semibold mb-3 border-b pb-1">{% trans "Categories" %}</h3>
+                <ul class="space-y-1 text-sm">
+                    {% for cat in post.categories.all %}
+                    <li><a href="{% url 'blog:post_list_by_category' category_slug=cat.slug %}" class="text-gray-700 hover:text-blue-600">{{ cat.name }}</a></li> {# Use direct name #}
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+            {% if post.tags.all %} {# Use post.tags instead of context var #}
+             <div class="bg-white p-4 rounded-lg shadow-md">
+                <h3 class="text-lg font-semibold mb-3 border-b pb-1">{% trans "Tags" %}</h3>
+                <div class="flex flex-wrap gap-2">
+                    {% for t in post.tags.all %}
+                    <a href="{% url 'blog:post_list_by_tag' tag_slug=t.slug %}" class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-full px-3 py-1">{{ t.name }}</a> {# Use direct name #}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+             {# Related Posts - Optional #}
+             {% if related_posts %}
+             <div class="mt-6">
+                 <h3 class="text-lg font-semibold mb-3">{% trans "Related Posts" %}</h3>
+                 <div class="space-y-4">
+                     {% for related_post in related_posts %}
+                         {% include 'blog/partials/post_card_minimal.html' with post=related_post %} {# Assumes a minimal card partial #}
+                     {% endfor %}
+                 </div>
+             </div>
+             {% endif %}
+        </aside>
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_scripts %}
+{# Add JS for comment replies if needed #}
+<script>
+    // Simple JS to set parent comment ID when clicking reply
+    document.querySelectorAll('.reply-button').forEach(button => {
+        button.addEventListener('click', function() {
+            const commentId = this.getAttribute('data-comment-id');
+            const commentAuthor = this.getAttribute('data-comment-author');
+            document.querySelector('#id_parent').value = commentId;
+            // Optional: Update form label or scroll to form
+            document.querySelector('label[for="id_content"]').innerText = `{% trans "Reply to" %} ${commentAuthor}`;
+            document.querySelector('#id_content').focus();
+        });
+    });
+    // Add button to clear parent ID
+</script>
+{% endblock extra_scripts %}

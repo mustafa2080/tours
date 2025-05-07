@@ -1,0 +1,292 @@
+{% extends "base.html" %}
+{% load static i18n %}
+
+{% block title %}{% trans "Travel Blog" %} | {% trans "Tourism Co." %}{% endblock %}
+
+{% block content %}
+<!-- Hero Section with Parallax Effect -->
+<div class="relative h-[50vh] md:h-[60vh] overflow-hidden mb-12">
+    <!-- Background Image with Parallax Effect -->
+    <div class="absolute inset-0 bg-cover bg-center transform transition-transform duration-1000"
+         style="background-image: url('{% static 'images/blog-hero.jpg' %}');"
+         x-data="{}"
+         x-init="window.addEventListener('scroll', () => {
+            $el.style.transform = `translateY(${window.scrollY * 0.4}px)`;
+         })">
+    </div>
+    <!-- Overlay -->
+    <div class="absolute inset-0 bg-gradient-to-b from-black/60 to-black/30"></div>
+
+    <!-- Content -->
+    <div class="relative h-full flex flex-col justify-center items-center text-center px-4 sm:px-6">
+        <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 animate-fadeIn">
+            {% trans "Our Travel Blog" %}
+        </h1>
+        <p class="text-xl text-white/90 max-w-2xl animate-slideUp">
+            {% trans "Discover travel tips, destination guides, and stories from around the world" %}
+        </p>
+
+        <!-- Search Bar -->
+        <div class="w-full max-w-xl mt-8 animate-slideUp" style="animation-delay: 200ms;">
+            <form method="get" action="{% url 'blog:post_list' %}" class="flex">
+                <input type="text" name="search" value="{{ search_query|default:'' }}"
+                       class="w-full px-5 py-3 rounded-l-full border-0 focus:ring-2 focus:ring-blue-500 shadow-lg"
+                       placeholder="{% trans 'Search for travel inspiration...' %}">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-r-full transition duration-300 shadow-lg">
+                    <i class="fas fa-search"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="container mx-auto px-4 sm:px-6 lg:px-8 mb-16">
+    <!-- Category Navigation -->
+    <div class="mb-12">
+        <div class="flex flex-wrap justify-center gap-3 md:gap-4">
+            <a href="{% url 'blog:post_list' %}"
+               class="px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 transform hover:scale-105 shadow-md
+                     {% if not category %}bg-blue-600 text-white hover:bg-blue-700{% else %}bg-white text-gray-700 hover:bg-gray-100{% endif %}">
+                {% trans "All Posts" %}
+            </a>
+            {% for cat in categories %}
+            <a href="{% url 'blog:post_list_by_category' cat.slug %}"
+               class="px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 transform hover:scale-105 shadow-md
+                     {% if category.slug == cat.slug %}bg-blue-600 text-white hover:bg-blue-700{% else %}bg-white text-gray-700 hover:bg-gray-100{% endif %}">
+                {{ cat.name }}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% if posts %}
+    <!-- Featured Post -->
+    {% with featured_post=posts.first %}
+    <div class="mb-16 animate-fadeIn">
+        <div class="bg-white rounded-2xl shadow-xl overflow-hidden transition duration-500 hover:shadow-2xl transform hover:-translate-y-1">
+            <div class="md:grid md:grid-cols-2 md:items-center">
+                <div class="relative h-80 md:h-full">
+                    <img src="{% if featured_post.featured_image %}{{ featured_post.featured_image.url }}{% else %}{% static 'images/blog-placeholder.jpg' %}{% endif %}"
+                         alt="{{ featured_post.title }}"
+                         class="w-full h-full object-cover">
+                    <div class="absolute top-4 left-4">
+                        <span class="bg-yellow-500 text-white px-4 py-1.5 rounded-full text-sm font-semibold shadow-lg">
+                            {{ featured_post.categories.first.name }}
+                        </span>
+                    </div>
+                </div>
+                <div class="p-6 md:p-10">
+                    <div class="flex items-center text-gray-500 text-sm mb-4">
+                        <span><i class="far fa-calendar-alt mr-1"></i> {{ featured_post.published_at|date:"M d, Y" }}</span>
+                        <span class="mx-2">•</span>
+                        <span><i class="far fa-eye mr-1"></i> {{ featured_post.unique_views_count|default:featured_post.view_count }} {% trans "views" %}</span>
+                    </div>
+                    <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-4 hover:text-blue-600 transition duration-300">
+                        <a href="{% url 'blog:post_detail' featured_post.slug %}">{{ featured_post.title }}</a>
+                    </h2>
+                    <p class="text-gray-600 mb-6 line-clamp-3">{{ featured_post.excerpt }}</p>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            {% if featured_post.author.profile_picture %}
+                            <img src="{{ featured_post.author.profile_picture.url }}" alt="{{ featured_post.author.get_full_name }}" class="w-10 h-10 rounded-full object-cover mr-3">
+                            {% else %}
+                            <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold mr-3">
+                                {{ featured_post.author.get_full_name|first|upper }}
+                            </div>
+                            {% endif %}
+                            <div>
+                                <p class="font-medium text-gray-800">{{ featured_post.author.get_full_name }}</p>
+                                <p class="text-xs text-gray-500">{% trans "Author" %}</p>
+                            </div>
+                        </div>
+                        <a href="{% url 'blog:post_detail' featured_post.slug %}" class="inline-flex items-center px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition duration-300 shadow-md">
+                            {% trans "Read More" %} <i class="fas fa-arrow-right ml-2"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endwith %}
+
+    <!-- Post Grid with Masonry Layout -->
+    <div class="mb-16">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {% for post in posts %}
+                {% if not forloop.first %}
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden transition duration-300 hover:shadow-xl transform hover:-translate-y-2 flex flex-col h-full animate-fadeIn" style="animation-delay: {{ forloop.counter|add:'-1' }}00ms;">
+                    <a href="{% url 'blog:post_detail' post.slug %}" class="block relative overflow-hidden group">
+                        <div class="h-56 overflow-hidden">
+                            <img src="{% if post.featured_image %}{{ post.featured_image.url }}{% else %}{% static 'images/blog-placeholder.jpg' %}{% endif %}"
+                                 alt="{{ post.title }}"
+                                 class="w-full h-full object-cover transition duration-700 transform group-hover:scale-110">
+                        </div>
+                        <div class="absolute top-4 left-4">
+                            <span class="bg-yellow-500 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-md">
+                                {{ post.categories.first.name }}
+                            </span>
+                        </div>
+                    </a>
+                    <div class="p-6 flex flex-col flex-grow">
+                        <div class="flex items-center text-gray-500 text-xs mb-3">
+                            <span><i class="far fa-calendar-alt mr-1"></i> {{ post.published_at|date:"M d, Y" }}</span>
+                            <span class="mx-2">•</span>
+                            <span><i class="far fa-eye mr-1"></i> {{ post.unique_views_count|default:post.view_count }} {% trans "views" %}</span>
+                        </div>
+                        <a href="{% url 'blog:post_detail' post.slug %}" class="block mb-3">
+                            <h3 class="text-xl font-bold text-gray-800 hover:text-blue-600 transition duration-300 line-clamp-2">{{ post.title }}</h3>
+                        </a>
+                        <p class="text-gray-600 mb-4 flex-grow line-clamp-3">{{ post.excerpt }}</p>
+                        <div class="flex items-center justify-between mt-auto pt-4 border-t border-gray-100">
+                            <div class="flex items-center">
+                                {% if post.author.profile_picture %}
+                                <img src="{{ post.author.profile_picture.url }}" alt="{{ post.author.get_full_name }}" class="w-8 h-8 rounded-full object-cover mr-2">
+                                {% else %}
+                                <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold mr-2">
+                                    {{ post.author.get_full_name|first|upper }}
+                                </div>
+                                {% endif %}
+                                <span class="text-sm font-medium text-gray-700">{{ post.author.get_full_name }}</span>
+                            </div>
+                            <a href="{% url 'blog:post_detail' post.slug %}" class="text-blue-600 hover:text-blue-800 text-sm font-medium transition duration-300">
+                                {% trans "Read" %} <i class="fas fa-arrow-right ml-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Pagination with Modern Design -->
+    {% if is_paginated %}
+    <div class="flex justify-center mt-12">
+        <div class="inline-flex rounded-full shadow-md bg-white p-1">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}"
+               class="flex items-center justify-center w-10 h-10 rounded-full text-gray-700 hover:bg-gray-100 transition duration-300">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+            {% endif %}
+
+            {% for i in page_obj.paginator.page_range %}
+                {% if i == page_obj.number %}
+                <span class="flex items-center justify-center w-10 h-10 rounded-full bg-blue-600 text-white font-medium">
+                    {{ i }}
+                </span>
+                {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}
+                <a href="?page={{ i }}{% if search_query %}&search={{ search_query }}{% endif %}"
+                   class="flex items-center justify-center w-10 h-10 rounded-full text-gray-700 hover:bg-gray-100 transition duration-300">
+                    {{ i }}
+                </a>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}"
+               class="flex items-center justify-center w-10 h-10 rounded-full text-gray-700 hover:bg-gray-100 transition duration-300">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <!-- No Posts Found -->
+    <div class="bg-white rounded-2xl shadow-lg p-10 text-center max-w-2xl mx-auto">
+        <div class="mb-6">
+            <i class="fas fa-search text-6xl text-gray-300"></i>
+        </div>
+        <h3 class="text-2xl font-bold text-gray-700 mb-3">{% trans "No posts found" %}</h3>
+        <p class="text-gray-500 mb-8">{% trans "We couldn't find any blog posts matching your criteria." %}</p>
+        <a href="{% url 'blog:post_list' %}" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition duration-300 shadow-lg">
+            <i class="fas fa-redo mr-2"></i> {% trans "View All Posts" %}
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Newsletter and Popular Tags Section -->
+<div class="bg-gray-50 py-16">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Newsletter -->
+            <div class="lg:col-span-2">
+                <div class="bg-gradient-to-r from-blue-600 to-blue-800 rounded-2xl p-8 text-white shadow-xl">
+                    <div class="md:flex items-center justify-between">
+                        <div class="mb-6 md:mb-0 md:pr-8">
+                            <h3 class="text-2xl font-bold mb-3">{% trans "Subscribe to Our Newsletter" %}</h3>
+                            <p class="text-blue-100">{% trans "Get the latest travel tips, destination guides, and exclusive offers directly to your inbox." %}</p>
+                        </div>
+                        <div class="flex-shrink-0 w-full md:w-auto">
+                            <form class="flex flex-col sm:flex-row gap-3">
+                                <input type="email" class="w-full px-5 py-3 rounded-full focus:outline-none focus:ring-2 focus:ring-yellow-500 shadow-md" placeholder="{% trans 'Your email address' %}">
+                                <button type="submit" class="bg-yellow-500 hover:bg-yellow-600 text-white font-medium px-6 py-3 rounded-full transition duration-300 shadow-md whitespace-nowrap">
+                                    {% trans "Subscribe" %}
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Popular Tags -->
+            <div class="bg-white rounded-2xl shadow-lg p-8">
+                <h3 class="text-xl font-bold text-gray-800 mb-6">{% trans "Popular Tags" %}</h3>
+                <div class="flex flex-wrap gap-2">
+                    {% for tag in popular_tags %}
+                    <a href="{% url 'blog:post_list_by_tag' tag.slug %}" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full text-sm transition duration-300 hover:shadow-md">
+                        #{{ tag.name }}
+                    </a>
+                    {% empty %}
+                    <p class="text-gray-500">{% trans "No tags available" %}</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom CSS for animations -->
+<style>
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    .animate-fadeIn {
+        animation: fadeIn 0.8s ease-out forwards;
+    }
+
+    .animate-slideUp {
+        animation: slideUp 0.8s ease-out forwards;
+    }
+
+    .line-clamp-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .line-clamp-3 {
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Include blog list JavaScript -->
+<script src="{% static 'js/blog-list.js' %}"></script>
+{% endblock %}

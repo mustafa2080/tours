@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>{% trans "Add Review" %}</h2>
+    <form method="post" class="mt-4">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="{{ form.rating.id_for_label }}" class="form-label">{% trans "Rating" %}</label>
+            {{ form.rating }}
+        </div>
+        {# Removed title field #}
+        <div class="mb-3">
+            <label for="{{ form.comment.id_for_label }}" class="form-label">{% trans "Comment" %}</label> {# Changed label and field #}
+            {{ form.comment }} {# Changed field #}
+        </div>
+        <button type="submit" class="btn btn-primary">{% trans "Submit Review" %}</button>
+    </form>
+</div>
+{% endblock %}

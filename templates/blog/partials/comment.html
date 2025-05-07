@@ -1,0 +1,42 @@
+{% load i18n %}
+{# Expects a 'comment' object #}
+<div id="comment-{{ comment.id }}" class="flex space-x-3">
+    {# Avatar Placeholder #}
+    <div class="flex-shrink-0">
+        <img class="h-10 w-10 rounded-full" src="{% if comment.author.profile_picture %}{{ comment.author.profile_picture.url }}{% else %}/static/images/avatar-placeholder.png{% endif %}" alt="{% if comment.author %}{{ comment.author.get_full_name|default:comment.author.email }}{% else %}{{ comment.name }}{% endif %}">
+    </div>
+    <div class="flex-grow">
+        <div class="text-sm">
+            <span class="font-semibold text-gray-900">
+                {% if comment.author %}
+                    {{ comment.author.get_full_name|default:comment.author.email }}
+                {% else %}
+                    {{ comment.name }}
+                {% endif %}
+            </span>
+            {% if comment.website %}
+                <a href="{{ comment.website }}" target="_blank" rel="nofollow noopener" class="text-xs text-gray-500 hover:text-blue-600 ml-2">(Website)</a>
+            {% endif %}
+        </div>
+        <div class="mt-1 text-sm text-gray-700">
+            {{ comment.content|linebreaksbr }}
+        </div>
+        <div class="mt-2 space-x-4 text-xs text-gray-500">
+            <span>{{ comment.created_at|timesince }} {% trans "ago" %}</span>
+            {# Reply Button - Uses JS from post_detail.html #}
+            <button type="button" 
+                    class="reply-button font-medium text-blue-600 hover:text-blue-800" 
+                    data-comment-id="{{ comment.id }}"
+                    data-comment-author="{% if comment.author %}{{ comment.author.get_full_name|default:comment.author.email }}{% else %}{{ comment.name }}{% endif %}">
+                {% trans "Reply" %}
+            </button>
+        </div>
+
+        {# Render Replies Recursively #}
+        {% for reply in comment.get_children %}
+            <div class="mt-4">
+                {% include 'blog/partials/comment.html' with comment=reply %}
+            </div>
+        {% endfor %}
+    </div>
+</div>

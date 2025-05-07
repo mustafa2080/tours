@@ -1,0 +1,348 @@
+{% extends "base.html" %}
+{% load i18n static %}
+{% load account socialaccount %}
+
+{% block extra_head %}
+<script src="{% static 'js/email-validation.js' %}"></script>
+<script src="{% static 'js/login-validation.js' %}"></script>
+{% endblock %}
+
+{% block title %}{% trans "Sign In" %} - {% trans "Tourism Project" %}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-5xl w-full flex shadow-2xl rounded-xl overflow-hidden">
+    <!-- Left side - Image and welcome text -->
+    <div class="hidden md:block md:w-1/2 bg-blue-600 text-white p-12 relative">
+      <div class="absolute inset-0 bg-cover bg-center opacity-20" style="background-image: url('{% static 'images/login-bg.jpg' %}')"></div>
+      <div class="relative z-10">
+        <h2 class="text-3xl font-bold mb-6">{% trans "Welcome Back" %}</h2>
+        <p class="mb-8">{% trans "Sign in to access your account and explore amazing travel destinations around the world." %}</p>
+      </div>
+    </div>
+
+    <!-- Right side - Login form -->
+    <div class="w-full md:w-1/2 bg-white p-8 md:p-12">
+      <div class="text-center mb-8">
+        <h1 class="text-2xl font-bold text-gray-800">{% trans "Sign In" %}</h1>
+        <p class="text-gray-600 mt-2">{% trans "Access your account to continue your journey" %}</p>
+      </div>
+
+      {% if form.errors %}
+        <div class="mb-4 p-4 rounded-md bg-red-50 border border-red-200">
+          <p class="text-sm text-red-600">
+            {% if form.non_field_errors %}
+              {{ form.non_field_errors.0 }}
+            {% else %}
+              {% trans "Please check your credentials and try again." %}
+            {% endif %}
+          </p>
+        </div>
+      {% endif %}
+
+      <form class="space-y-6 needs-validation" method="POST" action="{% url 'account_login' %}" novalidate>
+        {% csrf_token %}
+
+        <div class="form-group">
+          <label for="{{ form.login.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+            <i class="far fa-envelope text-gray-400 mr-1"></i>
+            {% trans "Email Address" %}
+          </label>
+          <div class="relative">
+            <input type="email" name="{{ form.login.html_name }}" id="{{ form.login.id_for_label }}"
+                  class="appearance-none block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                  placeholder="{% trans 'Enter your email' %}" required>
+            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none validation-icon hidden">
+              <i class="fas fa-check-circle text-green-500"></i>
+              <i class="fas fa-times-circle text-red-500"></i>
+            </div>
+          </div>
+          {% if form.login.errors %}
+            <p class="mt-1 text-sm text-red-600">{{ form.login.errors.0 }}</p>
+          {% endif %}
+          <p id="login-feedback" class="mt-1 text-sm validation-feedback"></p>
+        </div>
+
+        <div class="form-group">
+          <label for="{{ form.password.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+            <i class="fas fa-lock text-gray-400 mr-1"></i>
+            {% trans "Password" %}
+          </label>
+          <div class="relative">
+            <input type="password" name="{{ form.password.html_name }}" id="{{ form.password.id_for_label }}"
+                  class="appearance-none block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                  placeholder="{% trans 'Enter your password' %}" required>
+            <button type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 toggle-password">
+              <i class="fas fa-eye"></i>
+            </button>
+            <div class="absolute inset-y-0 right-8 pr-3 flex items-center pointer-events-none validation-icon hidden">
+              <i class="fas fa-check-circle text-green-500"></i>
+              <i class="fas fa-times-circle text-red-500"></i>
+            </div>
+          </div>
+          {% if form.password.errors %}
+            <p class="mt-1 text-sm text-red-600">{{ form.password.errors.0 }}</p>
+          {% endif %}
+          <p id="password-feedback" class="mt-1 text-sm validation-feedback"></p>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <div class="flex items-center">
+            <input id="{{ form.remember.id_for_label }}" name="{{ form.remember.html_name }}" type="checkbox"
+                  class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded transition-all duration-300">
+            <label for="{{ form.remember.id_for_label }}" class="ml-2 block text-sm text-gray-700">
+              {% trans "Remember me" %}
+            </label>
+          </div>
+          <div class="text-sm">
+            <a href="{% url 'account_reset_password' %}" class="font-medium text-blue-600 hover:text-blue-500 transition-all duration-300">
+              {% trans "Forgot your password?" %}
+            </a>
+          </div>
+        </div>
+
+        {% if redirect_field_value %}
+          <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+        {% endif %}
+
+        <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed btn btn-primary login-btn">
+          <i class="fas fa-sign-in-alt mr-2"></i>
+          {% trans "Sign In" %}
+        </button>
+      </form>
+
+      {% get_providers as socialaccount_providers %}
+      {% if socialaccount_providers %}
+        <div class="mt-6">
+          <div class="relative">
+            <div class="absolute inset-0 flex items-center">
+              <div class="w-full border-t border-gray-300"></div>
+            </div>
+            <div class="relative flex justify-center text-sm">
+              <span class="px-2 bg-white text-gray-500">{% trans "Or continue with" %}</span>
+            </div>
+          </div>
+
+          <div class="mt-6 grid grid-cols-{{ socialaccount_providers|length|default:3 }} gap-3">
+            {% for provider in socialaccount_providers %}
+              <a href="{% provider_login_url provider.id process='login' %}"
+                class="w-full inline-flex justify-center items-center py-2 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-all duration-300">
+                {% if provider.name == 'Google' %}
+                  <i class="fab fa-google text-red-500"></i>
+                {% elif provider.name == 'Facebook' %}
+                  <i class="fab fa-facebook-f text-blue-600"></i>
+                {% elif provider.name == 'Twitter' %}
+                  <i class="fab fa-twitter text-blue-400"></i>
+                {% else %}
+                  <i class="fas fa-external-link-alt"></i>
+                {% endif %}
+              </a>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
+      <div class="mt-6 text-center text-sm">
+        <p class="text-gray-600">
+          {% trans "Don't have an account?" %}
+          <a href="{% url 'account_signup' %}" class="font-medium text-blue-600 hover:text-blue-500 transition-all duration-300">
+            {% trans "Sign up" %}
+          </a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Debug: Log all form fields and their IDs
+    console.log('Debugging login form fields:');
+    const allInputs = document.querySelectorAll('form input');
+    allInputs.forEach(input => {
+      console.log(`Field: ${input.name}, ID: ${input.id}, Type: ${input.type}`);
+    });
+
+    // Get form elements
+    const emailInput = document.getElementById('id_login');
+    const passwordInput = document.getElementById('id_password');
+    const submitButton = document.querySelector('button[type="submit"]');
+    const loginForm = document.querySelector('form[action*="login"]');
+
+    // Add validation to email field
+    if (emailInput) {
+      emailInput.addEventListener('input', function() {
+        validateEmail(this);
+      });
+
+      emailInput.addEventListener('blur', function() {
+        validateEmail(this);
+      });
+    }
+
+    // Add validation to password field
+    if (passwordInput) {
+      passwordInput.addEventListener('input', function() {
+        validatePassword(this);
+      });
+
+      passwordInput.addEventListener('blur', function() {
+        validatePassword(this);
+      });
+    }
+
+    // Email validation function
+    function validateEmail(input) {
+      const basicEmailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const feedbackElement = document.getElementById('login-feedback');
+      const validationIcon = input.parentNode.querySelector('.validation-icon');
+
+      if (!feedbackElement) {
+        console.error('Email feedback element not found');
+        return false;
+      }
+
+      // Show validation icon
+      if (validationIcon) {
+        validationIcon.classList.remove('hidden');
+      }
+
+      // Check if email is valid
+      if (!basicEmailRegex.test(input.value)) {
+        // Invalid email format
+        feedbackElement.textContent = 'Please enter a valid email address';
+        feedbackElement.classList.add('text-red-600');
+        feedbackElement.classList.remove('text-green-600');
+        input.classList.add('border-red-500');
+        input.classList.remove('border-green-500');
+
+        // Update validation icon
+        if (validationIcon) {
+          validationIcon.querySelector('.fa-check-circle').style.display = 'none';
+          validationIcon.querySelector('.fa-times-circle').style.display = 'inline-block';
+        }
+        return false;
+      }
+
+      // Accept all domain extensions
+      const emailParts = input.value.split('@');
+      const domain = emailParts[1];
+
+      // Just check if domain has at least one dot
+      if (!domain.includes('.')) {
+        // Invalid domain format
+        feedbackElement.textContent = 'Email domain must include a dot (example@domain.com)';
+        feedbackElement.classList.add('text-red-600');
+        feedbackElement.classList.remove('text-green-600');
+        input.classList.add('border-red-500');
+        input.classList.remove('border-green-500');
+
+        // Update validation icon
+        if (validationIcon) {
+          validationIcon.querySelector('.fa-check-circle').style.display = 'none';
+          validationIcon.querySelector('.fa-times-circle').style.display = 'inline-block';
+        }
+        return false;
+      }
+
+      // Valid email
+      feedbackElement.textContent = 'Email is valid';
+      feedbackElement.classList.remove('text-red-600');
+      feedbackElement.classList.add('text-green-600');
+      input.classList.remove('border-red-500');
+      input.classList.add('border-green-500');
+
+      // Update validation icon
+      if (validationIcon) {
+        validationIcon.querySelector('.fa-check-circle').style.display = 'inline-block';
+        validationIcon.querySelector('.fa-times-circle').style.display = 'none';
+      }
+
+      return true;
+    }
+
+    // Password validation function
+    function validatePassword(input) {
+      const feedbackElement = document.getElementById('password-feedback');
+      const validationIcon = input.parentNode.querySelector('.validation-icon');
+
+      if (!feedbackElement) {
+        console.error('Password feedback element not found');
+        return false;
+      }
+
+      // Show validation icon
+      if (validationIcon) {
+        validationIcon.classList.remove('hidden');
+      }
+
+      if (input.value.length === 0) {
+        // Empty password
+        feedbackElement.textContent = 'Please enter your password';
+        feedbackElement.classList.add('text-red-600');
+        feedbackElement.classList.remove('text-green-600');
+        input.classList.add('border-red-500');
+        input.classList.remove('border-green-500');
+
+        // Update validation icon
+        if (validationIcon) {
+          validationIcon.querySelector('.fa-check-circle').style.display = 'none';
+          validationIcon.querySelector('.fa-times-circle').style.display = 'inline-block';
+        }
+        return false;
+      }
+
+      // Valid password (just checking it's not empty for login)
+      feedbackElement.textContent = 'Password entered';
+      feedbackElement.classList.remove('text-red-600');
+      feedbackElement.classList.add('text-green-600');
+      input.classList.remove('border-red-500');
+      input.classList.add('border-green-500');
+
+      // Update validation icon
+      if (validationIcon) {
+        validationIcon.querySelector('.fa-check-circle').style.display = 'inline-block';
+        validationIcon.querySelector('.fa-times-circle').style.display = 'none';
+      }
+
+      return true;
+    }
+
+    // Password visibility toggle
+    const toggleButtons = document.querySelectorAll('.toggle-password');
+    toggleButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        const input = this.parentNode.querySelector('input');
+        const icon = this.querySelector('i');
+
+        if (input.type === 'password') {
+          input.type = 'text';
+          icon.classList.remove('fa-eye');
+          icon.classList.add('fa-eye-slash');
+        } else {
+          input.type = 'password';
+          icon.classList.remove('fa-eye-slash');
+          icon.classList.add('fa-eye');
+        }
+      });
+    });
+
+    // Handle form submission for user state management
+    if (loginForm) {
+      loginForm.addEventListener('submit', function(e) {
+        // Set login attempted flag
+        sessionStorage.setItem('loginAttempted', 'true');
+
+        // Add active class to button
+        const submitBtn = this.querySelector('button[type="submit"]');
+        if (submitBtn) {
+          submitBtn.classList.add('active');
+          submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>' + submitBtn.textContent;
+        }
+      });
+    }
+  });
+</script>
+{% endblock %}

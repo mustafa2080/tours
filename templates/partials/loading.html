@@ -1,0 +1,82 @@
+{% comment %}
+    Modern Loading Spinner Template
+    This template is used to display a beautiful loading spinner while content is being loaded.
+
+    Usage:
+    {% include 'partials/loading.html' %}
+
+    Parameters:
+    - size: sm, md, lg (default: md)
+    - style: dots, pulse, bounce, wave (default: dots)
+    - text: Text to display below the spinner (default: "Loading...")
+    - fullscreen: Whether to display the spinner fullscreen (default: false)
+    - glass: Whether to use glass morphism effect (default: false)
+{% endcomment %}
+
+{% load i18n %}
+
+{% if not size %}
+    {% with size='md' %}
+        {% include 'partials/loading.html' with size=size style=style text=text fullscreen=fullscreen glass=glass %}
+    {% endwith %}
+{% else %}
+    {% if not style %}
+        {% with style='dots' %}
+            {% include 'partials/loading.html' with size=size style=style text=text fullscreen=fullscreen glass=glass %}
+        {% endwith %}
+    {% else %}
+        <div class="loading-container {% if fullscreen %}loading-fullscreen{% endif %}" style="display: none;">
+            <div class="loading-spinner-wrapper">
+                <div class="{% if glass %}glass-effect{% endif %}">
+                    {% if style == 'dots' %}
+                        <div class="custom-spinner {% if size == 'sm' %}custom-spinner-sm{% elif size == 'lg' %}custom-spinner-lg{% endif %} floating">
+                            <div class="custom-spinner-dot"></div>
+                            <div class="custom-spinner-dot"></div>
+                            <div class="custom-spinner-dot"></div>
+                            <div class="custom-spinner-dot"></div>
+                            <div class="custom-spinner-dot"></div>
+                            <div class="custom-spinner-dot"></div>
+                            <div class="custom-spinner-dot"></div>
+                            <div class="custom-spinner-dot"></div>
+                        </div>
+                    {% elif style == 'pulse' %}
+                        <div class="pulse-spinner {% if size == 'sm' %}pulse-spinner-sm{% elif size == 'lg' %}pulse-spinner-lg{% endif %}">
+                            <div class="pulse-circle"></div>
+                        </div>
+                    {% elif style == 'bounce' %}
+                        <div class="bounce-spinner {% if size == 'sm' %}bounce-spinner-sm{% elif size == 'lg' %}bounce-spinner-lg{% endif %}">
+                            <div class="bounce-dot"></div>
+                            <div class="bounce-dot"></div>
+                            <div class="bounce-dot"></div>
+                        </div>
+                    {% elif style == 'wave' %}
+                        <div class="wave-spinner {% if size == 'sm' %}wave-spinner-sm{% elif size == 'lg' %}wave-spinner-lg{% endif %}">
+                            <div class="wave-bar"></div>
+                            <div class="wave-bar"></div>
+                            <div class="wave-bar"></div>
+                            <div class="wave-bar"></div>
+                            <div class="wave-bar"></div>
+                        </div>
+                    {% else %}
+                        <div class="custom-spinner {% if size == 'sm' %}custom-spinner-sm{% elif size == 'lg' %}custom-spinner-lg{% endif %} floating">
+                            <div class="custom-spinner-dot"></div>
+                            <div class="custom-spinner-dot"></div>
+                            <div class="custom-spinner-dot"></div>
+                            <div class="custom-spinner-dot"></div>
+                            <div class="custom-spinner-dot"></div>
+                            <div class="custom-spinner-dot"></div>
+                            <div class="custom-spinner-dot"></div>
+                            <div class="custom-spinner-dot"></div>
+                        </div>
+                    {% endif %}
+
+                    {% if text %}
+                        <div class="loading-text">{{ text }}</div>
+                    {% else %}
+                        <div class="loading-text">{% trans "Loading..." %}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+{% endif %}

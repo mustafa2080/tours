@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Privacy Policy" %} - {% trans "Tourism Project" %}{% endblock title %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl md:text-4xl font-bold mb-6 text-center">{% trans "Privacy Policy" %}</h1>
+
+    <div class="bg-white p-6 rounded-lg shadow-md prose max-w-3xl mx-auto">
+        {% if site_settings and site_settings.privacy_policy %}
+            {{ site_settings.privacy_policy|safe }} {# Assuming content contains HTML/Markdown #}
+        {% else %}
+            <p>{% trans "Your privacy is important to us..." %}</p>
+            {# Add default content #}
+        {% endif %}
+    </div>
+</div>
+{% endblock content %}

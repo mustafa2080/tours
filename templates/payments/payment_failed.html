@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load static i18n %}
+
+{% block title %}{% trans "Payment Failed" %}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-12">
+    <div class="max-w-2xl mx-auto text-center">
+        <div class="bg-white rounded-xl shadow-md p-8">
+            <!-- Failed Icon -->
+            <div class="w-24 h-24 mx-auto bg-red-100 rounded-full flex items-center justify-center mb-6">
+                <i class="fas fa-times-circle text-red-500 text-5xl"></i>
+            </div>
+            
+            <h1 class="text-3xl font-bold text-gray-800 mb-4">{% trans "Payment Failed" %}</h1>
+            <p class="text-gray-600 mb-8">{% trans "We're sorry, but there was an issue processing your payment. Your booking has not been confirmed." %}</p>
+            
+            <!-- Possible Reasons -->
+            <div class="bg-gray-50 p-6 rounded-lg border mb-8">
+                <h2 class="text-lg font-semibold text-gray-700 mb-4">{% trans "Possible Reasons" %}:</h2>
+                
+                <ul class="space-y-3 text-left">
+                    <li class="flex items-start">
+                        <i class="fas fa-exclamation-circle text-red-500 mt-1 mr-2"></i>
+                        <span>{% trans "Your payment method was declined by the payment provider" %}</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-exclamation-circle text-red-500 mt-1 mr-2"></i>
+                        <span>{% trans "There was a temporary issue with the payment service" %}</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-exclamation-circle text-red-500 mt-1 mr-2"></i>
+                        <span>{% trans "The payment process was interrupted" %}</span>
+                    </li>
+                </ul>
+            </div>
+            
+            <!-- What to Do Next -->
+            <div class="bg-blue-50 p-6 rounded-lg border mb-8">
+                <h2 class="text-lg font-semibold text-gray-700 mb-4">{% trans "What to Do Next" %}:</h2>
+                
+                <ul class="space-y-3 text-left">
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-blue-500 mt-1 mr-2"></i>
+                        <span>{% trans "Try again with the same payment method" %}</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-blue-500 mt-1 mr-2"></i>
+                        <span>{% trans "Try a different payment method" %}</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-blue-500 mt-1 mr-2"></i>
+                        <span>{% trans "Contact our support team for assistance" %}</span>
+                    </li>
+                </ul>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
+                <a href="{% url 'booking:booking_list' %}" class="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg shadow-md hover:bg-blue-700 transition duration-300">
+                    <i class="fas fa-list-alt mr-2"></i> {% trans "View My Bookings" %}
+                </a>
+                <a href="{% url 'core:contact' %}" class="px-6 py-3 bg-gray-200 text-gray-700 font-medium rounded-lg shadow-md hover:bg-gray-300 transition duration-300">
+                    <i class="fas fa-headset mr-2"></i> {% trans "Contact Support" %}
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

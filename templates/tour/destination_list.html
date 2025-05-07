@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans "Destinations" %}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-6">{% trans "Explore Our Destinations" %}</h1>
+
+    {% if destinations %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {% for destination in destinations %}
+                <div class="bg-white rounded-lg shadow-md overflow-hidden transform transition duration-300 hover:scale-105">
+                    <a href="{% url 'tour:destination_detail' destination.slug %}">
+                        {% if destination.cover_image %}
+                            <img src="{{ destination.cover_image.url }}" alt="{{ destination.name }}" class="w-full h-48 object-cover">
+                        {% else %}
+                            <div class="w-full h-48 bg-gray-200 flex items-center justify-center">
+                                <span class="text-gray-500">{% trans "No Image" %}</span>
+                            </div>
+                        {% endif %}
+                        <div class="p-4">
+                            <h2 class="text-xl font-semibold mb-2">{{ destination.name }}</h2>
+                            <p class="text-gray-600 text-sm">{{ destination.country }}, {{ destination.city }}</p>
+                        </div>
+                    </a>
+                </div>
+            {% endfor %}
+        </div>
+
+        {% comment %} Pagination (Optional, based on view) {% endcomment %}
+        {% if is_paginated %}
+            <div class="mt-8">
+                <nav aria-label="Page navigation">
+                    <ul class="flex justify-center space-x-2">
+                        {% if page_obj.has_previous %}
+                            <li>
+                                <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1 border rounded hover:bg-gray-100">
+                                    {% trans "Previous" %}
+                                </a>
+                            </li>
+                        {% endif %}
+
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                                <li>
+                                    <span class="px-3 py-1 border rounded bg-blue-500 text-white">{{ num }}</span>
+                                </li>
+                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                <li>
+                                    <a href="?page={{ num }}" class="px-3 py-1 border rounded hover:bg-gray-100">
+                                        {{ num }}
+                                    </a>
+                                </li>
+                            {% elif num == page_obj.paginator.num_pages|add:'-1' or num == 1 %}
+                                <li><span class="px-3 py-1">...</span></li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if page_obj.has_next %}
+                            <li>
+                                <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1 border rounded hover:bg-gray-100">
+                                    {% trans "Next" %}
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+        {% endif %}
+
+    {% else %}
+        <p>{% trans "No destinations found." %}</p>
+    {% endif %}
+</div>
+{% endblock %}

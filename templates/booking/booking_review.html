@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% load static i18n %}
+
+{% block title %}{% trans "Review Your Booking" %}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-6">
+            <h1 class="text-3xl font-bold text-gray-800">{% trans "Review Your Booking" %}</h1>
+            <a href="javascript:history.back()" class="text-blue-600 hover:text-blue-800 flex items-center">
+                <i class="fas fa-arrow-left mr-2"></i> {% trans "Back" %}
+            </a>
+        </div>
+
+        <!-- Progress Steps -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div class="flex flex-col items-center">
+                    <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">1</div>
+                    <span class="text-sm mt-2 text-gray-600">{% trans "Book" %}</span>
+                </div>
+                <div class="flex-1 h-1 bg-blue-500 mx-2"></div>
+                <div class="flex flex-col items-center">
+                    <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">2</div>
+                    <span class="text-sm mt-2 text-gray-600">{% trans "Review" %}</span>
+                </div>
+                <div class="flex-1 h-1 bg-gray-300 mx-2"></div>
+                <div class="flex flex-col items-center">
+                    <div class="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center text-gray-500 font-bold">3</div>
+                    <span class="text-sm mt-2 text-gray-600">{% trans "Pay" %}</span>
+                </div>
+                <div class="flex-1 h-1 bg-gray-300 mx-2"></div>
+                <div class="flex flex-col items-center">
+                    <div class="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center text-gray-500 font-bold">4</div>
+                    <span class="text-sm mt-2 text-gray-600">{% trans "Confirm" %}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+            <!-- Booking Summary -->
+            <div class="p-6 border-b">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">{% trans "Booking Summary" %}</h2>
+                
+                <div class="flex flex-col md:flex-row gap-6 mb-6">
+                    <div class="md:w-1/3">
+                        {% if booking.tour.cover_image %}
+                            <img src="{{ booking.tour.cover_image.url }}" alt="{{ booking.tour.name }}" class="w-full h-48 object-cover rounded-lg">
+                        {% else %}
+                            <div class="w-full h-48 bg-gray-200 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-image text-gray-400 text-4xl"></i>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="md:w-2/3">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">{{ booking.tour.name }}</h3>
+                        <div class="flex items-center text-sm text-gray-600 mb-2">
+                            <i class="fas fa-map-marker-alt mr-2 text-blue-500"></i>
+                            <span>{{ booking.tour.destination.name }}</span>
+                        </div>
+                        <div class="flex items-center text-sm text-gray-600 mb-2">
+                            <i class="fas fa-calendar mr-2 text-blue-500"></i>
+                            <span>{{ booking.start_date|date:"M d, Y" }} - {{ booking.end_date|date:"M d, Y" }}</span>
+                        </div>
+                        <div class="flex items-center text-sm text-gray-600 mb-2">
+                            <i class="fas fa-users mr-2 text-blue-500"></i>
+                            <span>{{ booking.num_adults }} {% trans "Adults" %}{% if booking.num_children %}, {{ booking.num_children }} {% trans "Children" %}{% endif %}</span>
+                        </div>
+                        <div class="flex items-center text-sm text-gray-600 mb-4">
+                            <i class="fas fa-tag mr-2 text-blue-500"></i>
+                            <span>{{ booking.total_price|floatformat:2 }} {{ booking.currency_code }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Information -->
+            <div class="p-6 border-b">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">{% trans "Contact Information" %}</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-sm text-gray-600">{% trans "Full Name" %}</p>
+                        <p class="font-medium text-gray-800">{{ booking.full_name }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">{% trans "Email" %}</p>
+                        <p class="font-medium text-gray-800">{{ booking.email }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">{% trans "Phone Number" %}</p>
+                        <p class="font-medium text-gray-800">{{ booking.phone_number }}</p>
+                    </div>
+                </div>
+                
+                {% if booking.special_requests %}
+                <div class="mt-4">
+                    <p class="text-sm text-gray-600">{% trans "Special Requests" %}</p>
+                    <p class="font-medium text-gray-800 bg-gray-50 p-3 rounded-lg mt-1">{{ booking.special_requests }}</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Price Details -->
+            <div class="p-6 border-b">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">{% trans "Price Details" %}</h2>
+                
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">{% trans "Adults" %} ({{ booking.num_adults }} x {{ booking.tour.price|floatformat:2 }} {{ booking.currency_code }})</span>
+                            <span class="font-medium text-gray-800">{{ booking.num_adults|multiply:booking.tour.price|floatformat:2 }} {{ booking.currency_code }}</span>
+                        </div>
+                        {% if booking.num_children > 0 %}
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600">{% trans "Children" %} ({{ booking.num_children }} x {{ booking.tour.price|multiply:0.5|floatformat:2 }} {{ booking.currency_code }})</span>
+                                <span class="font-medium text-gray-800">{{ booking.num_children|multiply:booking.tour.price|multiply:0.5|floatformat:2 }} {{ booking.currency_code }}</span>
+                            </div>
+                        {% endif %}
+                        <div class="flex justify-between text-sm pt-2 border-t">
+                            <span class="text-gray-600">{% trans "Subtotal" %}</span>
+                            <span class="font-medium text-gray-800">{{ booking.subtotal|floatformat:2 }} {{ booking.currency_code }}</span>
+                        </div>
+                        {% if booking.discount_amount > 0 %}
+                            <div class="flex justify-between text-sm">
+                                <span class="text-green-600">{% trans "Discount" %}</span>
+                                <span class="font-medium text-green-600">-{{ booking.discount_amount|floatformat:2 }} {{ booking.currency_code }}</span>
+                            </div>
+                        {% endif %}
+                        <div class="flex justify-between text-base pt-2 border-t">
+                            <span class="font-bold text-gray-800">{% trans "Total" %}</span>
+                            <span class="font-bold text-blue-600">{{ booking.total_price|floatformat:2 }} {{ booking.currency_code }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Terms and Conditions -->
+            <div class="p-6 border-b">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">{% trans "Terms and Conditions" %}</h2>
+                
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <div class="space-y-4 text-sm text-gray-700">
+                        <p>{% trans "By proceeding to payment, you agree to our terms and conditions:" %}</p>
+                        <ul class="list-disc list-inside space-y-2">
+                            <li>{% trans "Cancellation policy: Free cancellation up to 48 hours before the tour starts. After that, a 50% fee applies." %}</li>
+                            <li>{% trans "Payment is required to confirm your booking." %}</li>
+                            <li>{% trans "Tour schedules may be subject to change due to weather conditions or other circumstances." %}</li>
+                            <li>{% trans "Please arrive at the meeting point at least 15 minutes before the tour starts." %}</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="p-6 flex flex-col sm:flex-row gap-4 justify-end">
+                <a href="javascript:history.back()" class="inline-flex items-center justify-center px-6 py-3 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-300">
+                    <i class="fas fa-arrow-left mr-2"></i> {% trans "Back to Booking Form" %}
+                </a>
+                <a href="{% url 'booking:proceed_to_payment' booking.id %}" class="inline-flex items-center justify-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-300">
+                    {% trans "Proceed to Payment" %} <i class="fas fa-arrow-right ml-2"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

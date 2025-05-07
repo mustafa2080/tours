@@ -1,0 +1,26 @@
+{
+  "name": "tourism_project",
+  "version": "1.0.0",
+  "description": "Tourism website with multi-language support",
+  "engines": {
+    "node": "18.x",
+    "npm": "9.x"
+  },
+  "scripts": {
+    "build": "npx tailwindcss -i ./static/src/input.css -o ./static/css/style.css --minify",
+    "watch": "npx tailwindcss -i ./static/src/input.css -o ./static/css/style.css --watch",
+    "heroku-postbuild": "npm run build"
+  },
+  "dependencies": {
+    "alpinejs": "^3.14.9",
+    "caniuse-lite": "^1.0.30001713",
+    "flatpickr": "^4.6.13",
+    "tailwindcss": "^3.4.17",
+    "autoprefixer": "^10.4.17",
+    "postcss": "^8.4.35",
+    "@tailwindcss/aspect-ratio": "^0.4.2",
+    "@tailwindcss/forms": "^0.5.7",
+    "@tailwindcss/line-clamp": "^0.4.4",
+    "@tailwindcss/typography": "^0.5.10"
+  }
+}

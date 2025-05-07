@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% load static i18n %}
+
+{% block title %}{% trans "Completing Payment" %}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-16">
+    <div class="max-w-2xl mx-auto text-center">
+        <div class="bg-white rounded-xl shadow-md p-8">
+            <!-- Processing Icon -->
+            <div class="w-24 h-24 mx-auto bg-blue-100 rounded-full flex items-center justify-center mb-6">
+                <i class="fas fa-sync-alt text-blue-500 text-5xl animate-spin"></i>
+            </div>
+            
+            <h1 class="text-3xl font-bold text-gray-800 mb-4">{% trans "Completing Your Payment" %}</h1>
+            <p class="text-gray-600 mb-8">{% trans "Your payment is being processed. Please do not close this window." %}</p>
+            
+            <!-- Status Information -->
+            <div class="bg-blue-50 p-6 rounded-lg mb-8">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">{% trans "Payment Status" %}</h2>
+                <p class="text-gray-600">{% trans "Current status" %}: <span class="font-medium">{{ order_status }}</span></p>
+                <p class="text-gray-600 mt-2">{% trans "Order ID" %}: <span class="font-medium">{{ order_id }}</span></p>
+            </div>
+            
+            <div id="completion-message" class="hidden">
+                <div class="w-16 h-16 mx-auto bg-green-100 rounded-full flex items-center justify-center mb-4">
+                    <i class="fas fa-check text-green-500 text-2xl"></i>
+                </div>
+                <p class="text-green-600 font-medium mb-6">{% trans "Payment completed successfully!" %}</p>
+                <a href="{% url 'payments:success' %}" class="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg shadow-md hover:bg-blue-700 transition duration-300">
+                    {% trans "Continue" %}
+                </a>
+            </div>
+            
+            <div id="error-message" class="hidden">
+                <div class="w-16 h-16 mx-auto bg-red-100 rounded-full flex items-center justify-center mb-4">
+                    <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
+                </div>
+                <p class="text-red-600 font-medium mb-6">{% trans "There was an error completing your payment." %}</p>
+                <a href="{% url 'payments:failed' %}" class="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg shadow-md hover:bg-blue-700 transition duration-300">
+                    {% trans "View Details" %}
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const orderID = '{{ order_id }}';
+        const csrfToken = '{{ csrf_token }}';
+        
+        // Function to capture the payment
+        function capturePayment() {
+            fetch('{% url "payments:capture_paypal_payment" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    orderID: orderID
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Show success message
+                    document.getElementById('completion-message').classList.remove('hidden');
+                    
+                    // Redirect after a short delay
+                    setTimeout(() => {
+                        window.location.href = data.redirect_url || '{% url "payments:success" %}';
+                    }, 2000);
+                } else {
+                    // Show error message
+                    document.getElementById('error-message').classList.remove('hidden');
+                    console.error('Payment capture failed:', data.error);
+                }
+            })
+            .catch(error => {
+                // Show error message
+                document.getElementById('error-message').classList.remove('hidden');
+                console.error('Error capturing payment:', error);
+            });
+        }
+        
+        // Attempt to capture the payment
+        capturePayment();
+    });
+</script>
+{% endblock %}

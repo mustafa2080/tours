@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans "Analytics Dashboard" %} - {% trans "Tourism Project" %}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.css">
+<!-- No custom styles needed, using pure Tailwind classes -->
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto py-8 px-4">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-800">{% block analytics_title %}{% trans "Analytics Dashboard" %}{% endblock %}</h1>
+
+        <div class="mt-4 md:mt-0 flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+            <form method="get" class="flex flex-col sm:flex-row items-center gap-2 w-full">
+                <div class="flex flex-col sm:flex-row items-center gap-2 w-full">
+                    <input type="text" name="start_date" id="start_date"
+                           class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary text-sm w-full sm:w-auto"
+                           placeholder="{% trans 'Start Date' %}" value="{{ start_date|date:'Y-m-d' }}">
+                    <span class="hidden sm:inline">-</span>
+                    <input type="text" name="end_date" id="end_date"
+                           class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary text-sm w-full sm:w-auto"
+                           placeholder="{% trans 'End Date' %}" value="{{ end_date|date:'Y-m-d' }}">
+                </div>
+                <button type="submit"
+                        class="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg transition-colors duration-200 w-full sm:w-auto">
+                    <i class="fas fa-filter mr-1"></i> {% trans "Filter" %}
+                </button>
+            </form>
+
+            {% if report_type %}
+            <div class="w-full sm:w-auto">
+                <a href="{% url 'analytics:export_csv' report_type %}"
+                   class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors duration-200 w-full block text-center">
+                    <i class="fas fa-file-csv mr-1"></i> {% trans "Export CSV" %}
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="mb-6">
+        <div class="bg-white rounded-xl shadow-md border border-gray-100 overflow-x-auto">
+            <div class="min-w-max">
+                <nav class="flex flex-nowrap p-2 md:p-4">
+                    <a href="{% url 'analytics:dashboard' %}"
+                       class="px-3 py-2 md:px-4 md:py-2 rounded-lg transition-colors duration-200 text-sm md:text-base whitespace-nowrap mx-1
+                              {% if request.resolver_match.url_name == 'dashboard' %}
+                                bg-primary text-white
+                              {% else %}
+                                text-gray-700 hover:bg-gray-100
+                              {% endif %}">
+                        <i class="fas fa-tachometer-alt mr-2"></i> {% trans "Overview" %}
+                    </a>
+                    <a href="{% url 'analytics:revenue' %}"
+                       class="px-3 py-2 md:px-4 md:py-2 rounded-lg transition-colors duration-200 text-sm md:text-base whitespace-nowrap mx-1
+                              {% if request.resolver_match.url_name == 'revenue' %}
+                                bg-primary text-white
+                              {% else %}
+                                text-gray-700 hover:bg-gray-100
+                              {% endif %}">
+                        <i class="fas fa-dollar-sign mr-2"></i> {% trans "Revenue" %}
+                    </a>
+                    <a href="{% url 'analytics:tours' %}"
+                       class="px-3 py-2 md:px-4 md:py-2 rounded-lg transition-colors duration-200 text-sm md:text-base whitespace-nowrap mx-1
+                              {% if request.resolver_match.url_name == 'tours' %}
+                                bg-primary text-white
+                              {% else %}
+                                text-gray-700 hover:bg-gray-100
+                              {% endif %}">
+                        <i class="fas fa-route mr-2"></i> {% trans "Tours" %}
+                    </a>
+                    <a href="{% url 'analytics:users' %}"
+                       class="px-3 py-2 md:px-4 md:py-2 rounded-lg transition-colors duration-200 text-sm md:text-base whitespace-nowrap mx-1
+                              {% if request.resolver_match.url_name == 'users' %}
+                                bg-primary text-white
+                              {% else %}
+                                text-gray-700 hover:bg-gray-100
+                              {% endif %}">
+                        <i class="fas fa-users mr-2"></i> {% trans "Users" %}
+                    </a>
+                    <a href="{% url 'analytics:reviews' %}"
+                       class="px-3 py-2 md:px-4 md:py-2 rounded-lg transition-colors duration-200 text-sm md:text-base whitespace-nowrap mx-1
+                              {% if request.resolver_match.url_name == 'reviews' %}
+                                bg-primary text-white
+                              {% else %}
+                                text-gray-700 hover:bg-gray-100
+                              {% endif %}">
+                        <i class="fas fa-star mr-2"></i> {% trans "Reviews" %}
+                    </a>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    {% block analytics_content %}{% endblock %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+    // Initialize date pickers
+    flatpickr("#start_date", {
+        dateFormat: "Y-m-d",
+        maxDate: "today"
+    });
+
+    flatpickr("#end_date", {
+        dateFormat: "Y-m-d",
+        maxDate: "today"
+    });
+
+    // Helper function to create charts
+    function createChart(canvasId, type, labels, datasets, options = {}) {
+        const ctx = document.getElementById(canvasId).getContext('2d');
+
+        // Default options
+        const defaultOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                }
+            }
+        };
+
+        // Merge options
+        const chartOptions = {...defaultOptions, ...options};
+
+        return new Chart(ctx, {
+            type: type,
+            data: {
+                labels: labels,
+                datasets: datasets
+            },
+            options: chartOptions
+        });
+    }
+</script>
+{% block analytics_js %}{% endblock %}
+{% endblock %}

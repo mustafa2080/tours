@@ -1,0 +1,996 @@
+{% extends "base.html" %}
+{% load static i18n %}
+
+{% block title %}{{ tour.title }} | {% trans "Tourism Co." %}{% endblock %}
+
+{% block content %}
+<!-- Tour Header Section -->
+<div class="bg-white rounded-xl shadow-md overflow-hidden mb-8 animate-fadeIn">
+    <div class="relative h-80 md:h-96 lg:h-[500px]">
+        <img src="{% if tour.cover_image %}{{ tour.cover_image.url }}{% else %}{% static 'images/tour-placeholder.jpg' %}{% endif %}"
+             alt="{{ tour.title }}"
+             class="w-full h-full object-cover">
+
+        <!-- Overlay -->
+        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent"></div>
+
+        <!-- Tour Title and Basic Info -->
+        <div class="absolute bottom-0 left-0 right-0 p-6 md:p-8 text-white">
+            <div class="flex flex-wrap items-center gap-3 mb-3">
+                <span class="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-md">
+                    {{ tour.category.name }}
+                </span>
+                <span class="bg-yellow-500 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-md">
+                    {{ tour.price|floatformat:2 }} {{ request.session.currency_code|default:DEFAULT_CURRENCY_CODE }}
+                </span>
+                {% if tour.discount_percentage > 0 %}
+                <span class="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-md">
+                    {{ tour.discount_percentage }}% {% trans "OFF" %}
+                </span>
+                {% endif %}
+            </div>
+            <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold mb-2">{{ tour.title }}</h1>
+            <div class="flex flex-wrap items-center gap-4 text-sm md:text-base">
+                <div class="flex items-center">
+                    <i class="fas fa-map-marker-alt text-yellow-400 mr-2"></i>
+                    <span>{{ tour.location }}</span>
+                </div>
+                <div class="flex items-center">
+                    <i class="fas fa-clock text-yellow-400 mr-2"></i>
+                    <span>{{ tour.duration_days }} {% trans "days" %}</span>
+                </div>
+                <div class="flex items-center">
+                    <i class="fas fa-star text-yellow-400 mr-2"></i>
+                    <span>{{ tour.rating|floatformat:1 }} ({{ tour.reviews_count }} {% trans "reviews" %})</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+    <!-- Tour Details (Left Column) -->
+    <div class="lg:col-span-2 space-y-8 animate-fadeIn">
+        <!-- Tour Overview -->
+        <div class="bg-white rounded-xl shadow-md p-6 md:p-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b border-gray-200 pb-2">{% trans "Tour Overview" %}</h2>
+            <p class="text-gray-700 leading-relaxed mb-6">{{ tour.description }}</p>
+
+            <!-- Tour Highlights -->
+            <h3 class="text-xl font-semibold text-gray-800 mb-3">{% trans "Highlights" %}</h3>
+            <ul class="space-y-2 mb-6">
+                {% for highlight in tour.highlights.all %}
+                <li class="flex items-start">
+                    <i class="fas fa-check-circle text-green-500 mt-1 mr-3"></i>
+                    <span class="text-gray-700">{{ highlight.text }}</span>
+                </li>
+                {% empty %}
+                <li class="text-gray-500">{% trans "No highlights available for this tour." %}</li>
+                {% endfor %}
+            </ul>
+
+            <!-- Tour Features -->
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                {% if tour.is_guided %}
+                <div class="flex items-center p-3 bg-blue-50 rounded-lg">
+                    <i class="fas fa-user-tie text-blue-600 text-xl mr-3"></i>
+                    <span class="text-gray-800 text-sm">{% trans "Guided Tour" %}</span>
+                </div>
+                {% endif %}
+
+
+
+                {% if tour.max_people %}
+                <div class="flex items-center p-3 bg-blue-50 rounded-lg">
+                    <i class="fas fa-users text-blue-600 text-xl mr-3"></i>
+                    <span class="text-gray-800 text-sm">{% trans "Max" %} {{ tour.max_people }} {% trans "people" %}</span>
+                </div>
+                {% endif %}
+
+                {% if tour.min_age %}
+                <div class="flex items-center p-3 bg-blue-50 rounded-lg">
+                    <i class="fas fa-child text-blue-600 text-xl mr-3"></i>
+                    <span class="text-gray-800 text-sm">{% trans "Min age" %}: {{ tour.min_age }}</span>
+                </div>
+                {% endif %}
+
+                {% if tour.languages.all %}
+                <div class="flex items-center p-3 bg-blue-50 rounded-lg">
+                    <i class="fas fa-language text-blue-600 text-xl mr-3"></i>
+                    <span class="text-gray-800 text-sm">
+                        {% for language in tour.languages.all|slice:":2" %}
+                            {{ language.name }}{% if not forloop.last %}, {% endif %}
+                        {% endfor %}
+                        {% if tour.languages.all|length > 2 %}
+                            +{{ tour.languages.all|length|add:"-2" }}
+                        {% endif %}
+                    </span>
+                </div>
+                {% endif %}
+
+                {% if tour.meals_included %}
+                <div class="flex items-center p-3 bg-blue-50 rounded-lg">
+                    <i class="fas fa-utensils text-blue-600 text-xl mr-3"></i>
+                    <span class="text-gray-800 text-sm">{% trans "Meals Included" %}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Itinerary -->
+        <div class="bg-white rounded-xl shadow-md p-6 md:p-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b border-gray-200 pb-2">{% trans "Itinerary" %}</h2>
+
+            <div class="space-y-6">
+                {% for day in tour.itinerary.all %}
+                <div x-data="{ open: false }" class="border border-gray-200 rounded-lg overflow-hidden">
+                    <button @click="open = !open" class="flex justify-between items-center w-full p-4 text-left bg-gray-50 hover:bg-gray-100 transition-colors duration-300">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold mr-3">
+                                {{ day.day }}
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-800">{{ day.title }}</h3>
+                        </div>
+                        <i class="fas" :class="open ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                    </button>
+
+                    <div x-show="open" x-transition:enter="transition ease-out duration-300"
+                         x-transition:enter-start="opacity-0 transform scale-95"
+                         x-transition:enter-end="opacity-100 transform scale-100"
+                         x-transition:leave="transition ease-in duration-200"
+                         x-transition:leave-start="opacity-100 transform scale-100"
+                         x-transition:leave-end="opacity-0 transform scale-95"
+                         class="p-4 border-t border-gray-200">
+                        <p class="text-gray-700 mb-4">{{ day.description }}</p>
+
+                        {# Removed loop for day.activities as it's not in the model #}
+
+                        {% if day.accommodation %}
+                        <div class="mt-4 pt-4 border-t border-gray-200">
+                            <div class="flex items-center">
+                                <i class="fas fa-bed text-blue-600 mr-2"></i>
+                                <span class="text-sm font-medium text-gray-700">{% trans "Accommodation" %}:</span>
+                                <span class="ml-2 text-sm text-gray-600">{{ day.accommodation }}</span>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-gray-500">{% trans "Detailed itinerary not available for this tour." %}</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Included/Excluded -->
+        <div class="bg-white rounded-xl shadow-md p-6 md:p-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b border-gray-200 pb-2">{% trans "What's Included/Excluded" %}</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Included -->
+                <div>
+                    <h3 class="text-xl font-semibold text-gray-800 mb-3 flex items-center">
+                        <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                        {% trans "Included" %}
+                    </h3>
+                    <div class="text-gray-700 space-y-1">
+                        {{ tour.included_services|linebreaksbr }}
+                    </div>
+                </div>
+
+                <!-- Excluded -->
+                <div>
+                    <h3 class="text-xl font-semibold text-gray-800 mb-3 flex items-center">
+                        <i class="fas fa-times-circle text-red-500 mr-2"></i>
+                        {% trans "Excluded" %}
+                    </h3>
+                    <div class="text-gray-700 space-y-1">
+                         {{ tour.excluded_services|linebreaksbr }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Location & Map -->
+        <div class="bg-white rounded-xl shadow-md p-6 md:p-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b border-gray-200 pb-2">{% trans "Location & Map" %}</h2>
+
+            <div class="mb-4">
+                <p class="text-gray-700">
+                    <i class="fas fa-map-marker-alt text-red-500 mr-2"></i>
+                    <strong>{% trans "Meeting Point" %}:</strong> {{ tour.meeting_point|default:"Not specified" }}
+                </p>
+                {% if tour.destination %}
+                <p class="text-gray-700 mt-2">
+                    <i class="fas fa-globe-americas text-blue-500 mr-2"></i>
+                    <strong>{% trans "Destination" %}:</strong> {{ tour.destination.name }}{% if tour.destination.city or tour.destination.country %}, {{ tour.destination.city }}{% if tour.destination.country %}, {{ tour.destination.country }}{% endif %}{% endif %}
+                </p>
+                {% endif %}
+
+                {% if tour.latitude and tour.longitude %}
+                <p class="text-gray-700 mt-2">
+                    <i class="fas fa-map-pin text-green-500 mr-2"></i>
+                    <strong>{% trans "Coordinates" %}:</strong> {{ tour.latitude }}, {{ tour.longitude }}
+                </p>
+                {% endif %}
+            </div>
+
+            <div class="h-80 bg-gray-200 rounded-lg overflow-hidden">
+                {% if tour.map_location %}
+                <!-- Google Maps Embed -->
+                <iframe
+                    src="{{ tour.map_location }}"
+                    width="100%"
+                    height="100%"
+                    style="border:0;"
+                    allowfullscreen=""
+                    loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade">
+                </iframe>
+                {% elif tour.latitude and tour.longitude %}
+                <!-- Fallback to coordinates-based map -->
+                <iframe
+                    src="https://maps.google.com/maps?q={{ tour.latitude }},{{ tour.longitude }}&z=15&output=embed"
+                    width="100%"
+                    height="100%"
+                    style="border:0;"
+                    allowfullscreen=""
+                    loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade">
+                </iframe>
+                {% else %}
+                <div class="w-full h-full flex flex-col items-center justify-center p-4">
+                    <i class="fas fa-map-marked-alt text-gray-400 text-4xl mb-4"></i>
+                    <p class="text-gray-500 text-center">{% trans "Map not available" %}</p>
+                    <p class="text-gray-400 text-sm text-center mt-2">{% trans "Location information will be added soon." %}</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Debug info for admins -->
+            {% if user.is_staff %}
+            <div class="mt-4 p-3 bg-gray-100 rounded-lg text-xs">
+                <p class="font-bold mb-1">{% trans "Admin Info" %}:</p>
+                <p><strong>map_location:</strong> {{ tour.map_location|default:"Not set" }}</p>
+                <p><strong>latitude:</strong> {{ tour.latitude|default:"Not set" }}</p>
+                <p><strong>longitude:</strong> {{ tour.longitude|default:"Not set" }}</p>
+                <p class="mt-2 text-gray-500">{% trans "To add a map, edit this tour and add a Google Maps embed URL to the 'Map Location' field." %}</p>
+                <p class="text-gray-500">{% trans "Example" %}: https://www.google.com/maps/embed?pb=!1m18!1m12!...</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Reviews Section -->
+        <div class="bg-white rounded-xl shadow-md p-6 md:p-8">
+            <!-- Reviews Header -->
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b border-gray-200 pb-4">
+                <div class="mb-4 md:mb-0">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-1">{% trans "Customer Reviews" %}</h2>
+                    <div class="flex items-center">
+                        <div class="flex items-center mr-2">
+                            {% for i in "12345" %}
+                                {% if forloop.counter <= tour.get_average_rating|floatformat:"0"|add:"0" %}
+                                    <i class="fas fa-star text-yellow-400"></i>
+                                {% elif forloop.counter <= tour.get_average_rating|floatformat:"1"|add:"0.5" %}
+                                    <i class="fas fa-star-half-alt text-yellow-400"></i>
+                                {% else %}
+                                    <i class="far fa-star text-yellow-400"></i>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <span class="text-lg font-bold text-gray-800">{{ tour.get_average_rating|floatformat:1 }}</span>
+                        <span class="text-sm text-gray-500 ml-2">({{ total_reviews }} {% trans "reviews" %})</span>
+                    </div>
+                </div>
+
+                <!-- Review Filters -->
+                <div class="flex flex-wrap gap-2">
+                    <button class="review-filter-btn bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200" data-filter="all">
+                        {% trans "All Reviews" %}
+                    </button>
+                    <button class="review-filter-btn bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200" data-filter="positive">
+                        {% trans "Positive" %}
+                    </button>
+                    <button class="review-filter-btn bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200" data-filter="neutral">
+                        {% trans "Neutral" %}
+                    </button>
+                    <button class="review-filter-btn bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200" data-filter="negative">
+                        {% trans "Critical" %}
+                    </button>
+                </div>
+
+
+            </div>
+
+            <!-- Rating Statistics -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <!-- Rating Distribution -->
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">{% trans "Rating Distribution" %}</h3>
+                    <div class="space-y-3">
+                        {% for rating in rating_percentages %}
+                            <div class="flex items-center">
+                                <span class="w-12 text-sm font-medium text-gray-700">{{ rating.0 }} {% if rating.0 == 1 %}{% trans "star" %}{% else %}{% trans "stars" %}{% endif %}</span>
+                                <div class="flex-1 h-4 mx-2 bg-gray-200 rounded-full overflow-hidden">
+                                    <div class="rating-progress-bar h-full bg-yellow-400 rounded-full" data-percentage="{{ rating.1 }}"></div>
+                                </div>
+                                <span class="w-12 text-sm font-medium text-gray-700">{{ rating.1 }}%</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Rating Chart -->
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">{% trans "Rating Overview" %}</h3>
+                    <div class="h-48">
+                        <canvas id="rating-distribution-chart"
+                            {% for rating in rating_percentages %}
+                                data-rating-{{ rating.0 }}="{{ rating.1 }}"
+                                data-count-{{ rating.0 }}="{{ rating.2|default:0 }}"
+                            {% endfor %}
+                        ></canvas>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reviews List -->
+            {% if reviews %}
+
+            <div class="space-y-6 mb-6">
+                {% for review in reviews %}
+                <div class="review-item border-b border-gray-200 pb-6 last:border-b-0 last:pb-0" data-rating="{{ review.rating }}">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex items-center">
+                            {% if review.user.profile_image %}
+                                <img src="{{ review.user.profile_image.url }}" alt="{{ review.user.get_full_name }}" class="w-10 h-10 rounded-full object-cover mr-3">
+                            {% else %}
+                                <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold mr-3">
+                                    {{ review.user.get_full_name|first|upper }}
+                                </div>
+                            {% endif %}
+                            <div>
+                                <h4 class="text-base font-medium text-gray-800">{{ review.user.get_full_name }}</h4>
+                                <p class="text-xs text-gray-500">{{ review.created_at|date:"F d, Y" }}</p>
+                            </div>
+                        </div>
+                        <div class="flex">
+                            {% for i in "12345" %}
+                                {% if forloop.counter <= review.rating %}
+                                    <i class="fas fa-star text-yellow-400"></i>
+                                {% else %}
+                                    <i class="far fa-star text-yellow-400"></i>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <p class="text-gray-700">{{ review.comment }}</p>
+                </div>
+                {% endfor %}
+
+                <!-- No filtered reviews message -->
+                <div id="no-filtered-reviews" class="hidden text-center py-4">
+                    <p class="text-gray-500">{% trans "No reviews match the selected filter." %}</p>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            {% if reviews.has_other_pages %}
+            <div class="flex justify-center mt-6">
+                <nav class="inline-flex rounded-md shadow-sm -space-x-px" aria-label="{% trans 'Pagination' %}">
+                    {% if reviews.has_previous %}
+                    <a href="?page={{ reviews.previous_page_number }}" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                        <span class="sr-only">{% trans "Previous" %}</span>
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                    {% endif %}
+
+                    {% for i in reviews.paginator.page_range %}
+                        {% if reviews.number == i %}
+                            <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-blue-50 text-sm font-medium text-blue-600">
+                                {{ i }}
+                            </span>
+                        {% else %}
+                            <a href="?page={{ i }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                {{ i }}
+                            </a>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if reviews.has_next %}
+                    <a href="?page={{ reviews.next_page_number }}" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                        <span class="sr-only">{% trans "Next" %}</span>
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                    {% endif %}
+                </nav>
+            </div>
+            {% endif %}
+
+            {% else %}
+            <div class="text-center py-8 bg-white rounded-lg shadow-sm p-6">
+                <div class="inline-block p-4 rounded-full bg-gray-100 mb-4">
+                    <i class="far fa-comment-dots text-3xl text-gray-400"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-700 mb-2">{% trans "No Reviews Yet" %}</h3>
+                <p class="text-gray-500 mb-6">{% trans "Be the first to review this tour!" %}</p>
+                {% if user.is_authenticated %}
+                    {% if not user_reviewed %}
+                    <a href="#review-form" class="inline-block px-6 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors duration-200">
+                        {% trans "Write a Review" %}
+                    </a>
+                    {% endif %}
+                {% else %}
+                    <a href="{% url 'account_login' %}?next={{ request.path }}" class="inline-block px-6 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors duration-200">
+                        {% trans "Login to Write a Review" %}
+                    </a>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Write a Review Form -->
+            {% if user.is_authenticated and not user_reviewed %}
+            <div class="mt-8 pt-6 border-t border-gray-200">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">{% trans "Write a Review" %}</h3>
+                <div id="review-form-errors" class="hidden mb-4 p-3 bg-red-100 text-red-700 rounded-lg"></div>
+                <form id="review-form" method="post" action="{% url 'reviews:tour_review' tour.slug %}" class="space-y-4">
+                    {% csrf_token %}
+                    <div>
+                        <label for="rating" class="block text-sm font-medium text-gray-700 mb-2">{% trans "Your Rating" %}</label>
+                        <div class="flex space-x-2" id="review-rating-stars" dir="ltr">
+                            {% for i in "12345" %}
+                            <input type="radio" name="rating" id="rating-{{ forloop.counter }}" value="{{ forloop.counter }}" class="hidden" required>
+                            <label for="rating-{{ forloop.counter }}" class="cursor-pointer text-3xl text-gray-300 hover:text-yellow-400 transition-colors duration-200 star-label">
+                                <i class="fas fa-star"></i>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div>
+                        <label for="comment" class="block text-sm font-medium text-gray-700 mb-2">{% trans "Your Review" %}</label>
+                        <textarea name="comment" id="comment" rows="4" class="block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 shadow-sm" placeholder="{% trans 'Share your experience with this tour...' %}" required></textarea>
+                    </div>
+                    <div>
+                        <button type="submit" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300">
+                            <i class="fas fa-paper-plane mr-2"></i> {% trans "Submit Review" %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+            {% elif user.is_authenticated and user_reviewed %}
+            <div class="mt-8 pt-6 border-t border-gray-200">
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-info-circle text-blue-500 mt-0.5"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-blue-800">{% trans "You've already reviewed this tour" %}</h3>
+                            <div class="mt-2 text-sm text-blue-700">
+                                <p>{% trans "Thank you for sharing your experience with other travelers!" %}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% elif not user.is_authenticated %}
+            <div class="mt-8 pt-6 border-t border-gray-200">
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-user-circle text-gray-500 mt-0.5"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-gray-800">{% trans "Want to share your experience?" %}</h3>
+                            <div class="mt-2 text-sm text-gray-700">
+                                <p>{% trans "Please" %} <a href="{% url 'account_login' %}?next={{ request.path }}" class="text-blue-600 hover:text-blue-800 font-medium">{% trans "log in" %}</a> {% trans "or" %} <a href="{% url 'account_signup' %}" class="text-blue-600 hover:text-blue-800 font-medium">{% trans "sign up" %}</a> {% trans "to write a review." %}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Related Tours -->
+        {% if related_tours %}
+        <div class="bg-white rounded-xl shadow-md p-6 md:p-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b border-gray-200 pb-2">{% trans "You Might Also Like" %}</h2>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                {% for related_tour in related_tours|slice:":6" %}
+                <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
+                    <!-- Tour Image -->
+                    <a href="{% url 'tour:tour_detail' related_tour.slug %}" class="block relative h-48 overflow-hidden">
+                        <img src="{% if related_tour.cover_image %}{{ related_tour.cover_image.url }}{% else %}{% static 'images/tour-placeholder.jpg' %}{% endif %}"
+                             alt="{{ related_tour.name }}"
+                             class="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500">
+
+                        <!-- Discount Badge -->
+                        {% if related_tour.has_discount %}
+                        <div class="absolute top-3 right-3 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-md">
+                            {{ related_tour.discount_percentage }}% {% trans "OFF" %}
+                        </div>
+                        {% endif %}
+                    </a>
+
+                    <!-- Tour Content -->
+                    <div class="p-4">
+                        <!-- Tour Title -->
+                        <a href="{% url 'tour:tour_detail' related_tour.slug %}" class="block">
+                            <h3 class="text-lg font-bold text-gray-800 mb-1 hover:text-blue-600 transition-colors duration-300">{{ related_tour.name }}</h3>
+                        </a>
+
+                        <!-- Location -->
+                        <div class="flex items-center text-gray-600 text-sm mb-2">
+                            <i class="fas fa-map-marker-alt text-blue-500 mr-1"></i>
+                            <span>{{ related_tour.destination.name }}</span>
+                        </div>
+
+                        <!-- Rating -->
+                        <div class="flex items-center mb-3">
+                            <div class="flex text-yellow-400 mr-1">
+                                {% with avg_rating=related_tour.get_average_rating %}
+                                {% for i in "12345" %}
+                                    {% if forloop.counter <= avg_rating|floatformat:"0"|add:"0" %}
+                                        <i class="fas fa-star"></i>
+                                    {% elif forloop.counter <= avg_rating|floatformat:"1"|add:"0.5" %}
+                                        <i class="fas fa-star-half-alt"></i>
+                                    {% else %}
+                                        <i class="far fa-star"></i>
+                                    {% endif %}
+                                {% endfor %}
+                                {% endwith %}
+                            </div>
+                            <span class="text-sm text-gray-600">({{ related_tour.tour_reviews.count }})</span>
+                        </div>
+
+                        <!-- Features -->
+                        <div class="flex flex-wrap gap-2 mb-3">
+                            <span class="inline-flex items-center text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                <i class="fas fa-clock mr-1"></i> {{ related_tour.duration_days }} {% trans "days" %}
+                            </span>
+                            <span class="inline-flex items-center text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                                <i class="fas fa-users mr-1"></i> {% trans "Max" %} {{ related_tour.max_people }}
+                            </span>
+                        </div>
+
+                        <!-- Price -->
+                        <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-200">
+                            <div>
+                                {% if related_tour.has_discount %}
+                                <span class="text-gray-500 line-through text-sm">{{ related_tour.price|floatformat:2 }}</span>
+                                <span class="text-lg font-bold text-blue-600 ml-1">{{ related_tour.discount_price|floatformat:2 }} {{ request.session.currency_code|default:DEFAULT_CURRENCY_CODE }}</span>
+                                {% else %}
+                                <span class="text-lg font-bold text-blue-600">{{ related_tour.price|floatformat:2 }} {{ request.session.currency_code|default:DEFAULT_CURRENCY_CODE }}</span>
+                                {% endif %}
+                                <span class="text-gray-500 text-xs">/ {% trans "person" %}</span>
+                            </div>
+                            <a href="{% url 'tour:tour_detail' related_tour.slug %}" class="inline-flex items-center justify-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-300">
+                                {% trans "View" %}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Booking Sidebar (Right Column) -->
+    <div class="space-y-6 animate-fadeIn">
+        <!-- Booking Card -->
+        <div class="bg-white rounded-xl shadow-md p-6 sticky top-24">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b border-gray-200 pb-2">{% trans "Book This Tour" %}</h2>
+
+            <div class="space-y-4 mb-6">
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-700">{% trans "Price" %}:</span>
+                    <div>
+                        {% if tour.discount_percentage > 0 %}
+                        <span class="text-gray-500 line-through text-sm">{{ tour.original_price|floatformat:2 }}</span>
+                        {% endif %}
+                        <span class="text-2xl font-bold text-blue-600">{{ tour.price|floatformat:2 }} {{ request.session.currency_code|default:DEFAULT_CURRENCY_CODE }}</span>
+                        <span class="text-gray-500 text-sm">/ {% trans "person" %}</span>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-700">{% trans "Duration" %}:</span>
+                    <span class="text-gray-800 font-medium">{{ tour.duration_days }} {% trans "days" %}</span>
+                </div>
+
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-700">{% trans "Group Size" %}:</span>
+                    <span class="text-gray-800 font-medium">{% trans "Max" %} {{ tour.max_people }} {% trans "people" %}</span>
+                </div>
+
+                {% if tour.available_dates.all %}
+                <div>
+                    <label for="tour_date" class="block text-sm font-medium text-gray-700 mb-1">{% trans "Select Date" %}</label>
+                    <select id="tour_date" name="tour_date" class="block w-full pl-3 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 shadow-sm">
+                        {% for date in tour.available_dates.all %}
+                        <option value="{{ date.id }}">
+                            {{ date.start_date|date:"M d, Y" }} - {{ date.end_date|date:"M d, Y" }}
+                            {% if date.spots_left <= 3 %}
+                                ({% trans "Only" %} {{ date.spots_left }} {% trans "spots left" %})
+                            {% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+
+                <div>
+                    <label for="participants" class="block text-sm font-medium text-gray-700 mb-1">{% trans "Number of Participants" %}</label>
+                    <div class="flex">
+                        <button type="button" id="decrease-participants" class="px-3 py-2 border border-gray-300 rounded-l-lg bg-gray-100 hover:bg-gray-200 transition-colors duration-300">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <input type="text" id="participants" name="participants" readonly value="1" class="w-full text-center border-y border-gray-300 focus:ring-blue-500 focus:border-blue-500">
+                        <button type="button" id="increase-participants" class="px-3 py-2 border border-gray-300 rounded-r-lg bg-gray-100 hover:bg-gray-200 transition-colors duration-300">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-t border-gray-200 pt-4 mb-6">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-gray-700">{% trans "Subtotal" %}:</span>
+                    <span class="text-gray-800 font-medium" id="subtotal-price">{{ tour.price|floatformat:2 }} {{ request.session.currency_code|default:DEFAULT_CURRENCY_CODE }}</span>
+                </div>
+
+                {% if tour.has_discount %}
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-gray-700">{% trans "Discount" %} ({{ tour.discount_percentage }}%):</span>
+                    <span class="text-green-600 font-medium" id="discount-amount">-0.00 {{ request.session.currency_code|default:DEFAULT_CURRENCY_CODE }}</span>
+                </div>
+                {% endif %}
+
+                <div class="flex justify-between items-center text-lg font-bold">
+                    <span class="text-gray-800">{% trans "Total" %}:</span>
+                    <span class="text-blue-600" id="total-price">{{ tour.price|floatformat:2 }} {{ request.session.currency_code|default:DEFAULT_CURRENCY_CODE }}</span>
+                </div>
+            </div>
+
+            <div class="space-y-3">
+                <!-- Update booking form URL to include participants and calculated prices -->
+                <form id="booking-redirect-form" method="get" action="{% url 'booking:booking_form' tour.id %}">
+                    <input type="hidden" name="participants" id="redirect-participants" value="{{ participants|default:'1' }}">
+                    <input type="hidden" name="subtotal" id="redirect-subtotal" value="">
+                    <input type="hidden" name="discount" id="redirect-discount" value="">
+                    <input type="hidden" name="total" id="redirect-total" value="">
+                    <button type="submit" class="w-full text-center px-6 py-3 border border-transparent text-base font-medium rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 transform hover:scale-105">
+                        {% trans "Book Now" %}
+                    </button>
+                </form>
+
+                <!-- Add the wishlist button -->
+                <a href="{% url 'users:toggle_wishlist' tour.id %}" class="flex items-center justify-center w-full px-6 py-3 mt-3 border border-gray-300 text-base font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300">
+                    {% if is_in_wishlist %} {# Use context variable #}
+                        <i class="fas fa-heart text-red-500 mr-2"></i> {% trans "Remove from Wishlist" %}
+                    {% else %}
+                        <i class="far fa-heart mr-2"></i> {% trans "Add to Wishlist" %}
+                    {% endif %}
+                </a>
+            </div>
+
+            <div class="mt-6 text-center text-sm text-gray-500">
+                <p>{% trans "No payment required today" %}</p>
+                <p>{% trans "Free cancellation up to 7 days before the tour" %}</p>
+            </div>
+        </div>
+
+        <!-- Tour Guide -->
+        {% if tour.guide %}
+        <div class="bg-white rounded-xl shadow-md p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4 border-b border-gray-200 pb-2">{% trans "Tour Guide" %}</h2>
+
+            <div class="flex items-center mb-4">
+                {% if tour.guide.profile_picture %}
+                    <img src="{{ tour.guide.profile_picture.url }}" alt="{{ tour.guide.get_full_name }}" class="w-16 h-16 rounded-full object-cover mr-4">
+                {% else %}
+                    <div class="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xl mr-4">
+                        {{ tour.guide.first_name|first|upper }}{{ tour.guide.last_name|first|upper }}
+                    </div>
+                {% endif %}
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800">{{ tour.guide.get_full_name }}</h3>
+                    <p class="text-sm text-gray-600">{% trans "Professional Tour Guide" %}</p>
+                </div>
+            </div>
+
+            <p class="text-gray-700 text-sm mb-4">{{ tour.guide.bio|truncatewords:30 }}</p>
+
+            <div class="flex items-center text-sm text-gray-600">
+                <i class="fas fa-language mr-1"></i>
+                <span>{% trans "Languages" %}:</span>
+                <span class="ml-1">
+                    {% for language in tour.guide.languages.all %}
+                        {{ language.name }}{% if not forloop.last %}, {% endif %}
+                    {% endfor %}
+                </span>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Need Help -->
+        <div class="bg-blue-50 rounded-xl p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">{% trans "Need Help?" %}</h2>
+
+            <div class="space-y-4">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-3">
+                        <i class="fas fa-phone"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-800">{% trans "Call Us" %}</p>
+                        <p class="text-sm text-gray-600">+1 (555) 123-4567</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-3">
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-800">{% trans "Email Us" %}</p>
+                        <p class="text-sm text-gray-600">support@tourismco.com</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-3">
+                        <i class="fas fa-comment"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-800">{% trans "Live Chat" %}</p>
+                        <p class="text-sm text-gray-600">{% trans "Available 24/7" %}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- FAQ Section -->
+<div class="mt-12 mb-16 animate-fadeIn">
+    <div class="text-center mb-8">
+        <h2 class="text-3xl font-bold text-gray-800 mb-2">{% trans "Frequently Asked Questions" %}</h2>
+        <p class="text-gray-600">{% trans "Find answers to common questions about this tour" %}</p>
+    </div>
+
+    <div class="max-w-3xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
+        <div class="divide-y divide-gray-200">
+            {% for faq in tour.faqs.all %}
+            <div x-data="{ open: false }" class="p-6">
+                <button @click="open = !open" class="flex justify-between items-center w-full text-left">
+                    <h3 class="text-lg font-medium text-gray-900">{{ faq.question }}</h3>
+                    <i class="fas" :class="open ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                </button>
+                <div x-show="open" x-transition:enter="transition ease-out duration-300"
+                     x-transition:enter-start="opacity-0 transform scale-95"
+                     x-transition:enter-end="opacity-100 transform scale-100"
+                     x-transition:leave="transition ease-in duration-200"
+                     x-transition:leave-start="opacity-100 transform scale-100"
+                     x-transition:leave-end="opacity-0 transform scale-95"
+                     class="mt-4 text-gray-700">
+                    <p>{{ faq.answer }}</p>
+                </div>
+            </div>
+            {% empty %}
+            <div class="p-6 text-center text-gray-500">
+                {% trans "No FAQs available for this tour." %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<!-- Include Chart.js for review charts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Include custom JavaScript files -->
+<script src="{% static 'js/tour-reviews.js' %}?v={% now 'U' %}"></script>
+
+<!-- JavaScript for Tour Detail Page -->
+<script>
+    // Define a single function to handle participant counter
+    function initParticipantCounter() {
+        console.log('Initializing participant counter');
+
+        // Remove any existing event listeners (if any)
+        const decreaseBtn = document.getElementById('decrease-participants');
+        const increaseBtn = document.getElementById('increase-participants');
+        const participantsInput = document.getElementById('participants');
+        const subtotalPriceElement = document.getElementById('subtotal-price');
+        const discountAmountElement = document.getElementById('discount-amount');
+        const totalPriceElement = document.getElementById('total-price');
+
+        if (!decreaseBtn || !increaseBtn || !participantsInput) {
+            console.error('Missing required elements for participant counter');
+            return;
+        }
+
+        // Clone and replace buttons to remove any existing event listeners
+        const newDecreaseBtn = decreaseBtn.cloneNode(true);
+        const newIncreaseBtn = increaseBtn.cloneNode(true);
+        decreaseBtn.parentNode.replaceChild(newDecreaseBtn, decreaseBtn);
+        increaseBtn.parentNode.replaceChild(newIncreaseBtn, increaseBtn);
+
+        // Get the new references
+        const decreaseBtnNew = document.getElementById('decrease-participants');
+        const increaseBtnNew = document.getElementById('increase-participants');
+
+        const tourPrice = {{ tour.price }};
+        const hasDiscount = {% if tour.has_discount %}true{% else %}false{% endif %};
+        const discountPercentage = {% if tour.has_discount %}{{ tour.discount_percentage }}{% else %}0{% endif %};
+        const discountPrice = {% if tour.has_discount %}{{ tour.discount_price }}{% else %}{{ tour.price }}{% endif %};
+        const currencyCode = '{{ request.session.currency_code|default:DEFAULT_CURRENCY_CODE }}';
+        const maxPeople = {{ tour.max_people }};
+
+        // Keep the current value or set to 1 if not valid
+        const currentValue = parseInt(participantsInput.value);
+        if (isNaN(currentValue) || currentValue < 1) {
+            participantsInput.value = '1';
+        }
+
+        function updatePrices() {
+            const participants = parseInt(participantsInput.value) || 1;
+            console.log('Updating prices for', participants, 'participants');
+
+            // Calculate subtotal (based on regular price)
+            const subtotal = (tourPrice * participants).toFixed(2);
+            subtotalPriceElement.textContent = `${subtotal} ${currencyCode}`;
+
+            if (hasDiscount) {
+                // Calculate discount using the discount percentage
+                const singlePersonDiscount = tourPrice * (discountPercentage / 100);
+                const totalDiscount = (singlePersonDiscount * participants).toFixed(2);
+
+                // Log detailed discount calculation
+                console.log('Discount calculation:', {
+                    tourPrice,
+                    discountPrice,
+                    discountPercentage,
+                    singlePersonDiscount,
+                    participants,
+                    totalDiscount
+                });
+
+                discountAmountElement.textContent = `-${totalDiscount} ${currencyCode}`;
+
+                // Calculate total price (subtotal - discount)
+                const total = (tourPrice * participants - singlePersonDiscount * participants).toFixed(2);
+                totalPriceElement.textContent = `${total} ${currencyCode}`;
+            } else {
+                const total = subtotal;
+                totalPriceElement.textContent = `${total} ${currencyCode}`;
+            }
+
+            // Update redirect form values
+            const redirectParticipantsInput = document.getElementById('redirect-participants');
+            const redirectSubtotalInput = document.getElementById('redirect-subtotal');
+            const redirectDiscountInput = document.getElementById('redirect-discount');
+            const redirectTotalInput = document.getElementById('redirect-total');
+
+            if (redirectParticipantsInput) {
+                redirectParticipantsInput.value = participants;
+                console.log('updatePrices: Updated redirect-participants to:', participants);
+            }
+
+            if (redirectSubtotalInput) {
+                redirectSubtotalInput.value = subtotal;
+                console.log('updatePrices: Updated redirect-subtotal to:', subtotal);
+            }
+
+            if (redirectDiscountInput && hasDiscount) {
+                const totalDiscount = (singlePersonDiscount * participants).toFixed(2);
+                redirectDiscountInput.value = totalDiscount;
+                console.log('updatePrices: Updated redirect-discount to:', totalDiscount);
+            }
+
+            if (redirectTotalInput) {
+                const total = hasDiscount ?
+                    (tourPrice * participants - singlePersonDiscount * participants).toFixed(2) :
+                    subtotal;
+                redirectTotalInput.value = total;
+                console.log('updatePrices: Updated redirect-total to:', total);
+            }
+        }
+
+        // Add decrease event
+        decreaseBtnNew.addEventListener('click', function(e) {
+            e.preventDefault();
+            let currentValue = parseInt(participantsInput.value) || 1;
+            console.log('Decrease clicked, current value:', currentValue);
+
+            if (currentValue > 1) {
+                currentValue -= 1;
+                participantsInput.value = currentValue;
+                console.log('Decreased to:', currentValue);
+                updatePrices();
+            }
+        });
+
+        // Add increase event
+        increaseBtnNew.addEventListener('click', function(e) {
+            e.preventDefault();
+            let currentValue = parseInt(participantsInput.value) || 1;
+            console.log('Increase clicked, current value:', currentValue);
+
+            if (currentValue < maxPeople) {
+                currentValue += 1;
+                participantsInput.value = currentValue;
+                console.log('Increased to:', currentValue);
+                updatePrices();
+            }
+        });
+
+        // Initialize prices
+        updatePrices();
+    }
+
+    // Initialize when DOM is ready
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM loaded, initializing participant counter');
+        initParticipantCounter();
+
+        // Update the hidden participants input when the participant count changes
+        const participantsInput = document.getElementById('participants');
+        const redirectParticipantsInput = document.getElementById('redirect-participants');
+
+        if (participantsInput && redirectParticipantsInput) {
+            // Update initially
+            redirectParticipantsInput.value = participantsInput.value || 1;
+            console.log('Initial redirect-participants value:', redirectParticipantsInput.value);
+
+            // Update whenever the participants count changes
+            participantsInput.addEventListener('change', function() {
+                const participantsCount = this.value || 1;
+                console.log('Participants count changed to:', participantsCount);
+                redirectParticipantsInput.value = participantsCount;
+                console.log('Updated redirect-participants value to:', participantsCount);
+            });
+
+            // Also listen for input events to catch all changes
+            participantsInput.addEventListener('input', function() {
+                const participantsCount = this.value || 1;
+                redirectParticipantsInput.value = participantsCount;
+                console.log('Input event: Updated redirect-participants to:', participantsCount);
+            });
+
+            // Add event listeners to increment/decrement buttons
+            const decreaseBtn = document.getElementById('decrease-participants');
+            const increaseBtn = document.getElementById('increase-participants');
+
+            if (decreaseBtn) {
+                decreaseBtn.addEventListener('click', function() {
+                    // Update after a short delay to ensure the input value has been updated
+                    setTimeout(() => {
+                        redirectParticipantsInput.value = participantsInput.value || 1;
+                        console.log('After decrease: Updated redirect-participants to:', redirectParticipantsInput.value);
+                    }, 10);
+                });
+            }
+
+            if (increaseBtn) {
+                increaseBtn.addEventListener('click', function() {
+                    // Update after a short delay to ensure the input value has been updated
+                    setTimeout(() => {
+                        redirectParticipantsInput.value = participantsInput.value || 1;
+                        console.log('After increase: Updated redirect-participants to:', redirectParticipantsInput.value);
+                    }, 10);
+                });
+            }
+        } else {
+            console.error('participants or redirect-participants input not found');
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %}

@@ -1,0 +1,45 @@
+{% load i18n static %}
+{# Expects a 'post' object in the context #}
+{# Assumes modeltranslation provides translated fields directly #}
+<div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition duration-300 flex flex-col">
+    <a href="{{ post.get_absolute_url }}">
+        {% if post.featured_image %}
+            <img src="{{ post.featured_image.url }}" alt="{{ post.title|default:post.slug }}" class="w-full h-48 object-cover">
+        {% else %}
+            <img src="{% static 'images/blog-placeholder.jpg' %}" alt="{% trans 'Placeholder Image' %}" class="w-full h-48 object-cover">
+        {% endif %}
+    </a>
+    <div class="p-4 flex flex-col flex-grow">
+        {# Categories - Example #}
+        <div class="text-xs text-gray-600 mb-1">
+            {% for category in post.categories.all|slice:":1" %}
+                <a href="{% url 'blog:post_list_by_category' category_slug=category.slug %}" class="hover:text-blue-600">{{ category.name }}</a> {# Use direct name #}
+            {% endfor %}
+        </div>
+        
+        <h3 class="text-lg font-semibold mb-2 flex-grow">
+            <a href="{{ post.get_absolute_url }}" class="hover:text-blue-600">
+                {{ post.title|default:post.slug|truncatechars:60 }} {# Use direct title #}
+            </a>
+        </h3>
+        
+        {# Excerpt - Optional #}
+        {% if post.excerpt %} {# Use direct excerpt #}
+        <p class="text-sm text-gray-700 mb-3">
+            {{ post.excerpt|truncatechars:100 }}
+        </p>
+        {% endif %}
+        
+        <div class="text-xs text-gray-500 mt-auto pt-2 border-t border-gray-200 flex justify-between items-center">
+            <span>
+                {% if post.author %}
+                    {% trans "By" %} {{ post.author.get_full_name|default:post.author.email }}
+                {% endif %}
+            </span>
+            <span>
+                {{ post.published_at|date:"d M Y" }}
+            </span>
+        </div>
+    </div>
+</div>
+{# Removed {% with %} block #}

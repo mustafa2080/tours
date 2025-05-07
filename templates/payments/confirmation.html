@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% load static i18n %}
+
+{% block title %}{% trans "Payment Confirmation" %}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-3xl mx-auto">
+        <!-- Success Message -->
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+            <div class="p-8 text-center">
+                <div class="w-20 h-20 mx-auto bg-green-100 rounded-full flex items-center justify-center mb-6">
+                    <i class="fas fa-check-circle text-green-500 text-5xl"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-gray-800 mb-3">{% trans "Payment Successful!" %}</h1>
+                <p class="text-gray-600 mb-8">{% trans "Your payment has been processed successfully and your booking is now confirmed." %}</p>
+                
+                <!-- Transaction Details -->
+                <div class="bg-gray-50 p-6 rounded-lg border mb-8 text-left">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-2">{% trans "Transaction Details" %}</h2>
+                    
+                    <div class="space-y-3 text-sm">
+                        <!-- Booking Reference -->
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">{% trans "Booking Reference" %}:</span>
+                            <span class="font-medium text-gray-800">BK-{{ booking.id }}</span>
+                        </div>
+                        
+                        <!-- Transaction ID -->
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">{% trans "Transaction ID" %}:</span>
+                            <span class="font-medium text-gray-800">{{ transaction_id }}</span>
+                        </div>
+                        
+                        <!-- Tour Name -->
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">{% trans "Tour" %}:</span>
+                            <span class="font-medium text-gray-800">{{ booking.tour.name }}</span>
+                        </div>
+                        
+                        <!-- Tour Dates -->
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">{% trans "Dates" %}:</span>
+                            <span class="font-medium text-gray-800">{{ booking.start_date|date:"M d, Y" }} - {{ booking.end_date|date:"M d, Y" }}</span>
+                        </div>
+                        
+                        <!-- Amount Paid -->
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">{% trans "Amount Paid" %}:</span>
+                            <span class="font-medium text-gray-800">{{ payment.amount|floatformat:2 }} {{ booking.currency_code|default:"USD" }}</span>
+                        </div>
+                        
+                        <!-- Payment Method -->
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">{% trans "Payment Method" %}:</span>
+                            <span class="font-medium text-gray-800">{{ payment.get_payment_method_display }}</span>
+                        </div>
+                        
+                        <!-- Payment Date -->
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">{% trans "Payment Date" %}:</span>
+                            <span class="font-medium text-gray-800">{{ payment.created_at|date:"F d, Y H:i" }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
+                    <a href="{% url 'booking:booking_detail' pk=booking.id %}" class="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg shadow-md hover:bg-blue-700 transition duration-300">
+                        <i class="fas fa-info-circle mr-2"></i> {% trans "View Booking Details" %}
+                    </a>
+                    <a href="{% url 'booking:booking_list' %}" class="px-6 py-3 bg-gray-200 text-gray-700 font-medium rounded-lg shadow-md hover:bg-gray-300 transition duration-300">
+                        <i class="fas fa-list-alt mr-2"></i> {% trans "View All Bookings" %}
+                    </a>
+                </div>
+                
+                <p class="text-sm text-gray-500 mt-6">{% trans "A confirmation email has been sent to your registered email address." %}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

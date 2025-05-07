@@ -1,0 +1,175 @@
+{% extends 'analytics/base.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block analytics_title %}{% trans "Review Analytics" %}{% endblock %}
+
+{% block analytics_content %}
+<!-- Charts -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <!-- Rating Distribution -->
+    <div class="analytics-card">
+        <div class="analytics-card-header">
+            <span>{% trans "Rating Distribution" %}</span>
+        </div>
+        <div class="h-80">
+            <canvas id="ratingDistributionChart"></canvas>
+        </div>
+    </div>
+    
+    <!-- Rating Trend -->
+    <div class="analytics-card">
+        <div class="analytics-card-header">
+            <span>{% trans "Average Rating Trend" %}</span>
+        </div>
+        <div class="h-80">
+            <canvas id="ratingTrendChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Reviews -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <!-- Positive Reviews -->
+    <div class="analytics-card">
+        <div class="analytics-card-header">
+            <span>{% trans "Positive Reviews" %}</span>
+        </div>
+        <div class="space-y-4 max-h-96 overflow-y-auto">
+            {% for review in positive_reviews %}
+            <div class="border border-gray-100 rounded-lg p-4 hover:shadow-md transition-shadow duration-300">
+                <div class="flex items-start">
+                    <div class="flex-1">
+                        <div class="flex justify-between items-start">
+                            <h3 class="font-medium text-gray-800">{{ review.tour.name }}</h3>
+                            <div class="flex items-center text-yellow-400">
+                                {% for i in "12345" %}
+                                    {% if forloop.counter <= review.rating %}
+                                        <i class="fas fa-star"></i>
+                                    {% else %}
+                                        <i class="far fa-star"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="text-sm text-gray-600 mt-1">
+                            <div class="flex items-center">
+                                <i class="far fa-user mr-1 text-primary"></i>
+                                <span>{{ review.user.get_full_name|default:review.user.username }}</span>
+                            </div>
+                            <div class="flex items-center mt-1">
+                                <i class="far fa-calendar-alt mr-1 text-primary"></i>
+                                <span>{{ review.created_at|date:"M d, Y" }}</span>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <p class="text-sm text-gray-700">{{ review.comment|truncatechars:150 }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-8">
+                <p class="text-gray-500">{% trans "No positive reviews found" %}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Negative Reviews -->
+    <div class="analytics-card">
+        <div class="analytics-card-header">
+            <span>{% trans "Negative Reviews" %}</span>
+        </div>
+        <div class="space-y-4 max-h-96 overflow-y-auto">
+            {% for review in negative_reviews %}
+            <div class="border border-gray-100 rounded-lg p-4 hover:shadow-md transition-shadow duration-300">
+                <div class="flex items-start">
+                    <div class="flex-1">
+                        <div class="flex justify-between items-start">
+                            <h3 class="font-medium text-gray-800">{{ review.tour.name }}</h3>
+                            <div class="flex items-center text-yellow-400">
+                                {% for i in "12345" %}
+                                    {% if forloop.counter <= review.rating %}
+                                        <i class="fas fa-star"></i>
+                                    {% else %}
+                                        <i class="far fa-star"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="text-sm text-gray-600 mt-1">
+                            <div class="flex items-center">
+                                <i class="far fa-user mr-1 text-primary"></i>
+                                <span>{{ review.user.get_full_name|default:review.user.username }}</span>
+                            </div>
+                            <div class="flex items-center mt-1">
+                                <i class="far fa-calendar-alt mr-1 text-primary"></i>
+                                <span>{{ review.created_at|date:"M d, Y" }}</span>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <p class="text-sm text-gray-700">{{ review.comment|truncatechars:150 }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-8">
+                <p class="text-gray-500">{% trans "No negative reviews found" %}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block analytics_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Rating Distribution Chart
+        const ratingData = {{ rating_chart_data|safe }};
+        createChart('ratingDistributionChart', 'bar', ratingData.labels, [{
+            label: '{% trans "Number of Reviews" %}',
+            data: ratingData.data,
+            backgroundColor: [
+                'rgba(239, 68, 68, 0.7)',  // 1 star - red
+                'rgba(249, 115, 22, 0.7)', // 2 stars - orange
+                'rgba(234, 179, 8, 0.7)',  // 3 stars - yellow
+                'rgba(34, 197, 94, 0.7)',  // 4 stars - green
+                'rgba(16, 185, 129, 0.7)'  // 5 stars - teal
+            ],
+            borderColor: [
+                'rgba(239, 68, 68, 1)',
+                'rgba(249, 115, 22, 1)',
+                'rgba(234, 179, 8, 1)',
+                'rgba(34, 197, 94, 1)',
+                'rgba(16, 185, 129, 1)'
+            ],
+            borderWidth: 1
+        }]);
+        
+        // Rating Trend Chart
+        const trendData = {{ rating_trend_data|safe }};
+        createChart('ratingTrendChart', 'line', trendData.labels, [{
+            label: '{% trans "Average Rating" %}',
+            data: trendData.data,
+            backgroundColor: 'rgba(234, 179, 8, 0.2)',
+            borderColor: 'rgba(234, 179, 8, 1)',
+            borderWidth: 2,
+            tension: 0.4,
+            fill: true
+        }], {
+            scales: {
+                y: {
+                    min: 0,
+                    max: 5,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

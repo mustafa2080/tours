@@ -1,0 +1,1738 @@
+{% extends "base.html" %}
+{% load static i18n %}
+{% load booking_filters %}
+
+{% block title %}{% trans "Book Tour" %} - {{ tour.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Only add minimal custom styles that can't be achieved with Tailwind */
+    .booking-step {
+        transition: opacity 0.3s ease-in-out;
+    }
+
+    /* Custom animation for progress bar */
+    @keyframes progress-pulse {
+        0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); }
+        70% { box-shadow: 0 0 0 6px rgba(59, 130, 246, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+    }
+
+    .progress-pulse {
+        animation: progress-pulse 1.5s infinite;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="w-full min-h-screen bg-gray-50 px-4 md:px-6 lg:px-8 py-6 md:py-10">
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-8">
+            <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-800 mb-4 sm:mb-0">{% trans "Book Your Tour" %}</h1>
+            <a href="javascript:history.back()" class="text-blue-600 hover:text-blue-800 flex items-center transition-colors duration-300 text-sm sm:text-base">
+                <i class="fas fa-arrow-left mr-2"></i> {% trans "Back to Tour" %}
+            </a>
+        </div>
+
+        <!-- Progress Steps -->
+        <div class="mb-10">
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <!-- Progress Bar -->
+                <div class="relative h-1 bg-gray-200">
+                    <div id="progress-fill" class="h-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all duration-500 ease-in-out" style="width: 0%"></div>
+                </div>
+
+                <!-- Steps -->
+                <div class="flex">
+                    <!-- Step 1: Booking Details -->
+                    <div id="step-1" class="flex-1 py-4 px-2 sm:px-4 border-b-2 border-blue-500 bg-blue-50 transition-all duration-300 ease-in-out">
+                        <div class="flex flex-col items-center">
+                            <div class="w-8 h-8 mb-2 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-md progress-pulse">
+                                <span class="step-number text-sm font-semibold">1</span>
+                                <i class="fas fa-check hidden step-icon"></i>
+                            </div>
+                            <span class="text-blue-700 text-xs sm:text-sm font-medium text-center">{% trans "Booking Details" %}</span>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Invoice Review -->
+                    <div id="step-2" class="flex-1 py-4 px-2 sm:px-4 border-b-2 border-gray-200 transition-all duration-300 ease-in-out">
+                        <div class="flex flex-col items-center">
+                            <div class="w-8 h-8 mb-2 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center shadow-sm">
+                                <span class="step-number text-sm font-semibold">2</span>
+                                <i class="fas fa-check hidden step-icon"></i>
+                            </div>
+                            <span class="text-gray-500 text-xs sm:text-sm font-medium text-center">{% trans "Invoice Review" %}</span>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Payment -->
+                    <div id="step-3" class="flex-1 py-4 px-2 sm:px-4 border-b-2 border-gray-200 transition-all duration-300 ease-in-out">
+                        <div class="flex flex-col items-center">
+                            <div class="w-8 h-8 mb-2 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center shadow-sm">
+                                <span class="step-number text-sm font-semibold">3</span>
+                                <i class="fas fa-check hidden step-icon"></i>
+                            </div>
+                            <span class="text-gray-500 text-xs sm:text-sm font-medium text-center">{% trans "Payment" %}</span>
+                        </div>
+                    </div>
+
+                    <!-- Step 4: Confirmation -->
+                    <div id="step-4" class="flex-1 py-4 px-2 sm:px-4 border-b-2 border-gray-200 transition-all duration-300 ease-in-out">
+                        <div class="flex flex-col items-center">
+                            <div class="w-8 h-8 mb-2 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center shadow-sm">
+                                <span class="step-number text-sm font-semibold">4</span>
+                                <i class="fas fa-check hidden step-icon"></i>
+                            </div>
+                            <span class="text-gray-500 text-xs sm:text-sm font-medium text-center">{% trans "Confirmation" %}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left Column: Booking Form -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-xl shadow-md p-6 md:p-8 mb-8">
+                    <!-- Step 1: Booking Details -->
+                    <div id="booking-step-1" class="booking-step active">
+                        <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                            <i class="fas fa-calendar-alt text-blue-500 mr-3"></i>
+                            {% trans "Booking Details" %}
+                        </h2>
+
+                        <form id="booking-form" class="space-y-6">
+                            {% csrf_token %}
+                            <input type="hidden" name="tour_id" value="{{ tour.id }}">
+
+                            <!-- Start Date -->
+                            <div>
+                                <label for="start_date" class="block text-sm font-medium text-gray-700 mb-1">{% trans "Start Date" %} *</label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <i class="far fa-calendar-alt text-gray-400"></i>
+                                    </div>
+                                    <input type="date" id="start_date" name="start_date" required
+                                           class="pl-10 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                           min="{{ today|date:'Y-m-d' }}">
+                                </div>
+                            </div>
+
+                            <!-- Duration (Read-only) -->
+                            <div>
+                                <label for="duration" class="block text-sm font-medium text-gray-700 mb-1">{% trans "Duration" %}</label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <i class="fas fa-clock text-gray-400"></i>
+                                    </div>
+                                    <input type="text" id="duration" name="duration" readonly
+                                           class="pl-10 block w-full rounded-lg border-gray-300 bg-gray-50 shadow-sm"
+                                           value="{{ tour.duration_days }} {% trans 'days' %} / {{ tour.duration_nights }} {% trans 'nights' %}">
+                                </div>
+                            </div>
+
+                            <!-- End Date (Calculated automatically) -->
+                            <div>
+                                <label for="end_date" class="block text-sm font-medium text-gray-700 mb-1">{% trans "End Date" %}</label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <i class="far fa-calendar-alt text-gray-400"></i>
+                                    </div>
+                                    <input type="date" id="end_date" name="end_date" readonly
+                                           class="pl-10 block w-full rounded-lg border-gray-300 bg-gray-50 shadow-sm">
+                                </div>
+                            </div>
+
+                            <!-- Number of Adults -->
+                            <div>
+                                <label for="num_adults" class="block text-sm font-medium text-gray-700 mb-1">{% trans "Adults" %} *</label>
+                                <div class="flex items-center">
+                                    <button type="button" id="decrement-adults-btn" class="px-3 py-2 bg-gray-200 rounded-l-lg hover:bg-gray-300 focus:outline-none">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    <input type="number" id="num_adults" name="num_adults" min="1" value="{{ initial_participants|default:'1' }}" required
+                                           class="block w-full text-center border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                           data-initial-value="{{ initial_participants|default:'1' }}"
+                                           oninput="updateTourSummary()">
+                                    <button type="button" id="increment-adults-btn" class="px-3 py-2 bg-gray-200 rounded-r-lg hover:bg-gray-300 focus:outline-none">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Number of Children -->
+                            <div>
+                                <label for="num_children" class="block text-sm font-medium text-gray-700 mb-1">{% trans "Children" %}</label>
+                                <div class="flex items-center">
+                                    <button type="button" id="decrement-children-btn" class="px-3 py-2 bg-gray-200 rounded-l-lg hover:bg-gray-300 focus:outline-none">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    <input type="number" id="num_children" name="num_children" min="0" value="0"
+                                           class="block w-full text-center border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                           oninput="updateTourSummary()">
+                                    <button type="button" id="increment-children-btn" class="px-3 py-2 bg-gray-200 rounded-r-lg hover:bg-gray-300 focus:outline-none">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Special Requests -->
+                            <div>
+                                <label for="special_requests" class="block text-sm font-medium text-gray-700 mb-1">{% trans "Special Requests" %}</label>
+                                <textarea id="special_requests" name="special_requests" rows="3"
+                                          class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                          placeholder="{% trans 'Any special requirements or requests?' %}"></textarea>
+                            </div>
+
+                            <!-- Continue Button -->
+                            <div class="pt-4">
+                                <button type="button" id="to-step-2-btn" class="w-full px-6 py-3 bg-blue-600 text-white font-medium rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-300 flex items-center justify-center">
+                                    <span class="mr-2">{% trans "Continue to Review" %}</span>
+                                    <i class="fas fa-arrow-right"></i>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Step 2: Invoice Review (Will be shown/hidden with JavaScript) -->
+                    <div id="booking-step-2" class="booking-step hidden">
+                        <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                            <i class="fas fa-file-invoice text-blue-500 mr-3"></i>
+                            {% trans "Invoice Review" %}
+                        </h2>
+
+                        <!-- Invoice Details -->
+                        <div class="bg-gray-50 p-5 rounded-lg mb-6">
+                            <div class="flex flex-col md:flex-row md:justify-between md:items-start gap-6">
+                                <div>
+                                    <div class="flex items-center mb-3">
+                                        <i class="fas fa-file-invoice-dollar text-blue-500 text-xl mr-3"></i>
+                                        <h3 class="text-xl font-bold text-gray-800">{% trans "Invoice" %}</h3>
+                                    </div>
+                                    <p class="text-sm text-gray-600" id="invoice-date"></p>
+                                </div>
+                                <div class="text-right bg-white p-4 rounded-lg shadow-sm">
+                                    <div class="font-medium text-gray-800 mb-2">{{ site_name|default:"Tourism Company" }}</div>
+                                    <p class="text-sm text-gray-600 mb-1">{{ company_address|default:"123 Tourism Street" }}</p>
+                                    <p class="text-sm text-gray-600 mb-1">{{ company_email|default:"info@tourismcompany.com" }}</p>
+                                    <p class="text-sm text-gray-600">{{ company_phone|default:"+1 234 567 890" }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Customer & Booking Details -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div class="bg-gray-50 p-5 rounded-lg">
+                                <h4 class="font-semibold text-gray-800 mb-3 flex items-center">
+                                    <i class="fas fa-user text-blue-500 mr-2"></i>
+                                    {% trans "Customer Details" %}
+                                </h4>
+                                <p class="text-sm text-gray-700 mb-2 font-medium">{{ request.user.get_full_name }}</p>
+                                <p class="text-sm text-gray-600 mb-2 flex items-center">
+                                    <i class="fas fa-envelope text-gray-400 mr-2 w-4"></i>
+                                    {{ request.user.email }}
+                                </p>
+                            </div>
+                            <div class="bg-gray-50 p-5 rounded-lg">
+                                <h4 class="font-semibold text-gray-800 mb-3 flex items-center">
+                                    <i class="fas fa-calendar-check text-blue-500 mr-2"></i>
+                                    {% trans "Booking Details" %}
+                                </h4>
+                                <p class="text-sm text-gray-600 mb-2 flex items-center">
+                                    <i class="fas fa-hashtag text-gray-400 mr-2 w-4"></i>
+                                    {% trans "Booking Reference:" %} <span class="font-mono ml-1" id="review-booking-reference"></span>
+                                </p>
+                                <p class="text-sm text-gray-600 mb-2 flex items-center">
+                                    <i class="fas fa-calendar text-gray-400 mr-2 w-4"></i>
+                                    {% trans "Travel Dates:" %} <span class="ml-1" id="review-travel-dates"></span>
+                                </p>
+                                <p class="text-sm text-gray-600 flex items-center">
+                                    <i class="fas fa-users text-gray-400 mr-2 w-4"></i>
+                                    {% trans "Travelers:" %} <span class="ml-1" id="review-travelers"></span>
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Price Summary -->
+                        <div class="bg-gray-50 p-5 rounded-lg mb-6">
+                            <h4 class="font-semibold text-gray-800 mb-4 flex items-center">
+                                <i class="fas fa-calculator text-blue-500 mr-2"></i>
+                                {% trans "Price Details" %}
+                            </h4>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center text-sm pb-3 border-b border-gray-200">
+                                    <span class="text-gray-700" id="review-adults-label"></span>
+                                    <span class="font-medium text-gray-800" id="review-adults-amount"></span>
+                                </div>
+                                <div class="flex justify-between items-center text-sm pb-3 border-b border-gray-200" id="review-children-row" style="display: none;">
+                                    <span class="text-gray-700" id="review-children-label"></span>
+                                    <span class="font-medium text-gray-800" id="review-children-amount"></span>
+                                </div>
+                                <div class="flex justify-between items-center text-sm pt-2">
+                                    <span class="text-gray-700">{% trans "Subtotal" %}</span>
+                                    <span class="font-medium text-gray-800" id="review-subtotal-amount"></span>
+                                </div>
+                                {% if tour.has_discount %}
+                                <div class="flex justify-between items-center text-sm">
+                                    <span class="text-green-600 flex items-center">
+                                        <i class="fas fa-tag mr-1"></i>
+                                        {% trans "Discount" %} ({{ tour.discount_percentage }}%)
+                                    </span>
+                                    <span class="font-medium text-green-600" id="review-discount-amount"></span>
+                                </div>
+                                {% endif %}
+                                <div class="flex justify-between items-center text-base pt-3 mt-2 border-t border-gray-200">
+                                    <span class="font-bold text-gray-800">{% trans "Total" %}</span>
+                                    <span class="font-bold text-xl text-blue-600" id="review-total-amount"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Navigation Buttons -->
+                        <div class="flex justify-between pt-4">
+                            <button type="button" id="back-to-step-1-btn" class="px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-300 flex items-center">
+                                <i class="fas fa-arrow-left mr-2"></i>
+                                <span>{% trans "Back to Details" %}</span>
+                            </button>
+                            <button type="button" id="to-step-3-btn" class="px-8 py-3 bg-blue-600 text-white font-medium rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-300 flex items-center">
+                                <span class="mr-2">{% trans "Proceed to Payment" %}</span>
+                                <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Payment (Will be shown/hidden with JavaScript) -->
+                    <div id="booking-step-3" class="booking-step hidden">
+                        <!-- Tour Summary (Added at the top of the payment step) -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
+                            <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                                <i class="fas fa-suitcase text-blue-500 mr-3"></i>
+                                {% trans "Tour Summary" %}
+                            </h2>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <!-- Tour Info -->
+                                <div>
+                                    <h3 class="text-lg font-semibold text-gray-800 mb-2">{{ tour.name }}</h3>
+                                    <div class="flex items-center text-sm text-gray-600 mb-2">
+                                        <i class="fas fa-map-marker-alt text-blue-500 mr-2 w-5 text-center"></i>
+                                        <span>{{ tour.destination.name }}</span>
+                                    </div>
+                                    <div class="flex items-center text-sm text-gray-600 mb-2">
+                                        <i class="fas fa-calendar-alt text-blue-500 mr-2 w-5 text-center"></i>
+                                        <span id="payment-travel-dates"></span>
+                                    </div>
+                                    <div class="flex items-center text-sm text-gray-600">
+                                        <i class="fas fa-users text-blue-500 mr-2 w-5 text-center"></i>
+                                        <span id="payment-travelers"></span>
+                                    </div>
+                                </div>
+
+                                <!-- Price Summary -->
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <h3 class="font-medium text-gray-800 mb-3 flex items-center">
+                                        <i class="fas fa-receipt text-green-500 mr-2"></i>
+                                        {% trans "Price Summary" %}
+                                    </h3>
+                                    <div class="space-y-2">
+                                        <div class="flex justify-between items-center text-sm pb-2 border-b border-gray-200">
+                                            <span class="text-gray-700" id="payment-adults-label"></span>
+                                            <span class="font-medium text-gray-800" id="payment-adults-amount"></span>
+                                        </div>
+                                        <div class="flex justify-between items-center text-sm pb-2 border-b border-gray-200" id="payment-children-row" style="display: none;">
+                                            <span class="text-gray-700" id="payment-children-label"></span>
+                                            <span class="font-medium text-gray-800" id="payment-children-amount"></span>
+                                        </div>
+                                        <div class="flex justify-between items-center text-sm pt-1">
+                                            <span class="text-gray-700">{% trans "Subtotal" %}</span>
+                                            <span class="font-medium text-gray-800" id="payment-subtotal-amount"></span>
+                                        </div>
+                                        {% if tour.has_discount %}
+                                        <div class="flex justify-between items-center text-sm">
+                                            <span class="text-green-600 flex items-center">
+                                                <i class="fas fa-tag mr-1"></i>
+                                                {% trans "Discount" %} ({{ tour.discount_percentage }}%)
+                                            </span>
+                                            <span class="font-medium text-green-600" id="payment-discount-amount"></span>
+                                        </div>
+                                        {% endif %}
+                                        <div class="flex justify-between items-center text-base pt-2 mt-1 border-t border-gray-200">
+                                            <span class="font-bold text-gray-800">{% trans "Total" %}</span>
+                                            <span class="font-bold text-blue-600" id="payment-total-amount"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                            <i class="fas fa-credit-card text-blue-500 mr-3"></i>
+                            {% trans "Payment Method" %}
+                        </h2>
+
+                        <!-- Payment Method Selection -->
+                        <div class="space-y-6">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <button type="button" id="paypal-method-btn" class="p-6 border-2 rounded-xl text-center transition-all duration-200 shadow-sm hover:shadow-md border-blue-500 bg-blue-50">
+                                    <i class="fab fa-paypal text-3xl mb-3 text-blue-500"></i>
+                                    <div class="font-medium text-blue-600">PayPal</div>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- PayPal Button Container -->
+                        <div class="mt-6">
+                            <div class="bg-blue-50 p-4 rounded-lg mb-6 flex items-start">
+                                <i class="fas fa-info-circle text-blue-500 mt-1 mr-3"></i>
+                                <p class="text-sm text-blue-700">{% trans "You will be redirected to PayPal to complete your payment securely. After payment, you'll return to this page to see your booking confirmation." %}</p>
+                            </div>
+                            <div id="paypal-loading" class="text-center py-8">
+                                <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+                                <p class="text-gray-600">{% trans "Loading PayPal payment options..." %}</p>
+                            </div>
+                            <div id="paypal-button-container" class="mt-4"></div>
+                        </div>
+
+                        <script>
+                            // Hide the loading indicator when PayPal buttons are rendered
+                            document.addEventListener('DOMContentLoaded', function() {
+                                // Fallback: hide loading after 10 seconds regardless
+                                setTimeout(function() {
+                                    const loadingEl = document.getElementById('paypal-loading');
+                                    if (loadingEl) {
+                                        loadingEl.style.display = 'none';
+                                    }
+                                }, 10000);
+                            });
+                        </script>
+
+                        <!-- Navigation Buttons -->
+                        <div class="flex justify-start pt-4">
+                            <button type="button" id="back-to-step-2-btn" class="px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-300 flex items-center">
+                                <i class="fas fa-arrow-left mr-2"></i>
+                                <span>{% trans "Back to Review" %}</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Step 4: Confirmation (Will be shown/hidden with JavaScript) -->
+                    <div id="booking-step-4" class="booking-step hidden">
+                        <div class="text-center mb-10">
+                            <div class="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-6">
+                                <i class="fas fa-check-circle text-green-500 text-5xl"></i>
+                            </div>
+                            <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-3">{% trans "Thank You!" %}</h2>
+                            <p class="text-gray-600 text-lg">{% trans "Your booking has been confirmed." %}</p>
+                            <div class="mt-6 inline-block bg-blue-50 px-4 py-2 rounded-lg">
+                                <p class="text-blue-700 font-medium">{% trans "Booking Reference:" %} <span class="font-mono" id="confirmation-booking-reference"></span></p>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="flex flex-col sm:flex-row justify-center items-center gap-4">
+                            <a href="{% url 'booking:booking_list' %}" class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 border border-gray-300 rounded-lg shadow-sm text-base font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-300">
+                                <i class="fas fa-list-ul mr-2"></i> {% trans "View My Bookings" %}
+                            </a>
+                            <button id="print-confirmation-btn" class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 border border-transparent rounded-lg shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-300">
+                                <i class="fas fa-print mr-2"></i> {% trans "Print Invoice" %}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Tour Summary and Price Details -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-xl shadow-md p-6 md:p-8 sticky top-24">
+                    <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                        <i class="fas fa-suitcase text-blue-500 mr-3"></i>
+                        {% trans "Tour Summary" %}
+                    </h2>
+
+                    <!-- Tour Image -->
+                    <div class="mb-6">
+                        {% if tour.cover_image %}
+                            <img src="{{ tour.cover_image.url }}" alt="{{ tour.name }}" class="w-full h-48 object-cover rounded-lg shadow-sm">
+                        {% else %}
+                            <div class="w-full h-48 bg-gray-200 flex items-center justify-center rounded-lg">
+                                <i class="fas fa-image text-gray-400 text-4xl"></i>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Tour Info -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">{{ tour.name }}</h3>
+                        <div class="flex items-center text-sm text-gray-600 mb-2">
+                            <i class="fas fa-map-marker-alt text-blue-500 mr-2 w-5 text-center"></i>
+                            <span>{{ tour.destination.name }}</span>
+                        </div>
+                        <div class="flex items-center text-sm text-gray-600 mb-2">
+                            <i class="fas fa-calendar-alt text-blue-500 mr-2 w-5 text-center"></i>
+                            <span id="booking-dates">{% trans "Select dates" %}</span>
+                        </div>
+                        <div class="flex items-center text-sm text-gray-600">
+                            <i class="fas fa-users text-blue-500 mr-2 w-5 text-center"></i>
+                            <span id="booking-travelers">{{ initial_participants|default:1 }} {% if initial_participants|default:1 == 1 %}{% trans "Adult" %}{% else %}{% trans "Adults" %}{% endif %}</span>
+                        </div>
+                    </div>
+
+                    <!-- Price Summary -->
+                    <div class="bg-gray-50 p-5 rounded-lg mb-6">
+                        <h3 class="font-medium text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-receipt text-green-500 mr-2"></i>
+                            {% trans "Price Summary" %}
+                        </h3>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center text-sm pb-3 border-b border-gray-200">
+                                <span class="text-gray-700" id="adults-label">{% trans "Adults" %} ({{ initial_participants|default:1 }} x {{ tour_price|floatformat:2 }} {{ currency_code }})</span>
+                                <span class="font-medium text-gray-800" id="adults-amount">{{ tour_price|multiply:initial_participants|default:1|floatformat:2 }} {{ currency_code }}</span>
+                            </div>
+                            <div class="flex justify-between items-center text-sm pb-3 border-b border-gray-200" id="children-row" style="display: none;">
+                                <span class="text-gray-700" id="children-label">{% trans "Children" %} (0 x {{ child_price|floatformat:2 }} {{ currency_code }})</span>
+                                <span class="font-medium text-gray-800" id="children-amount">0.00 {{ currency_code }}</span>
+                            </div>
+                            <div class="flex justify-between items-center text-sm pt-2">
+                                <span class="text-gray-700">{% trans "Subtotal" %}</span>
+                                <span class="font-medium text-gray-800" id="subtotal-amount">{{ tour_price|multiply:initial_participants|default:1|floatformat:2 }} {{ currency_code }}</span>
+                            </div>
+
+                            {% if tour.has_discount %}
+                            <div class="flex justify-between items-center text-sm">
+                                <span class="text-green-600 flex items-center">
+                                    <i class="fas fa-tag mr-1"></i>
+                                    {% trans "Discount" %} ({{ tour.discount_percentage }}%)
+                                </span>
+                                <span class="font-medium text-green-600" id="discount-amount">-{{ discount_amount|floatformat:2 }} {{ currency_code }}</span>
+                            </div>
+                            {% endif %}
+
+                            <div class="flex justify-between items-center text-base pt-3 mt-2 border-t border-gray-200">
+                                <span class="font-bold text-gray-800">{% trans "Total" %}</span>
+                                <span class="font-bold text-xl text-blue-600" id="total-amount">{{ total_price|floatformat:2 }} {{ currency_code }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Invoice Number -->
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <h3 class="font-medium text-gray-800 mb-2 flex items-center">
+                            <i class="fas fa-file-invoice text-blue-500 mr-2"></i>
+                            {% trans "Invoice Details" %}
+                        </h3>
+                        <p class="text-sm text-gray-600">{% trans "Invoice Number:" %} <span id="invoice-number">{{ booking_reference|default:"-" }}</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- PayPal SDK with popup blocker fix -->
+<script>
+    // Create a custom element to handle PayPal SDK loading
+    class PayPalLoader extends HTMLElement {
+        constructor() {
+            super();
+            this.loaded = false;
+        }
+
+        connectedCallback() {
+            // Create the script element
+            const script = document.createElement('script');
+            script.src = "https://www.paypal.com/sdk/js?client-id={{ paypal_client_id }}&currency={{ currency_code|default:'USD' }}&intent=capture";
+            script.async = true;
+            script.onload = () => {
+                console.log('PayPal SDK loaded successfully');
+                this.loaded = true;
+                // Dispatch a custom event when PayPal SDK is loaded
+                window.dispatchEvent(new CustomEvent('paypal-sdk-loaded'));
+
+                // Hide loading indicator
+                const loadingEl = document.getElementById('paypal-loading');
+                if (loadingEl) {
+                    loadingEl.style.display = 'none';
+                }
+            };
+            script.onerror = (error) => {
+                console.error('Failed to load PayPal SDK:', error);
+            };
+
+            // Append the script to the document
+            document.head.appendChild(script);
+        }
+    }
+
+    // Register the custom element
+    customElements.define('paypal-loader', PayPalLoader);
+</script>
+
+<!-- Use the custom element to load PayPal SDK -->
+<paypal-loader></paypal-loader>
+
+<script>
+    // Store Django URLs for AJAX calls
+    const URLS = {
+        // Use a placeholder ID and then replace it with the actual ID when needed
+        createPaypalOrder: function(id) {
+            return "{% url 'booking:create_paypal_order' 999999 %}".replace('999999', id);
+        },
+        capturePaypalPayment: function(id) {
+            return "{% url 'booking:capture_paypal_payment' 999999 %}".replace('999999', id);
+        },
+        paymentSuccess: function(id) {
+            return "{% url 'booking:payment_success' 999999 %}".replace('999999', id);
+        },
+        paymentCancel: "{% url 'booking:payment_cancel' %}"
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM loaded, initializing booking form');
+
+        // Get initial participants value from the input's data attribute
+        const numAdultsInput = document.getElementById('num_adults');
+        const initialParticipants = numAdultsInput ?
+            parseInt(numAdultsInput.getAttribute('data-initial-value') || numAdultsInput.value) : 1;
+
+        console.log('Initial participants from server:', initialParticipants);
+
+        // Initialize booking form functionality
+        initBookingForm();
+
+        // Update prices immediately
+        updateTourSummary();
+
+        // Then update again after a very short delay to ensure all elements are ready
+        requestAnimationFrame(() => {
+            updateTourSummary();
+        });
+
+        // And one more time after a longer delay to make sure everything is updated
+        setTimeout(() => {
+            console.log('Final update of tour summary');
+            updateTourSummary();
+        }, 500);
+
+        // Trigger change event on start date to calculate end date
+        const startDateInput = document.getElementById('start_date');
+        if (startDateInput && startDateInput.value) {
+            // Dispatch change event to calculate end date
+            const event = new Event('change');
+            startDateInput.dispatchEvent(event);
+        } else if (startDateInput) {
+            // Set default date (today) and trigger change
+            const today = new Date();
+            startDateInput.value = today.toISOString().split('T')[0];
+            const event = new Event('change');
+            startDateInput.dispatchEvent(event);
+        }
+
+        // Make sure num_adults has the correct initial value
+        if (numAdultsInput) {
+            console.log('Current num_adults value:', numAdultsInput.value);
+
+            // Force the value to be the initial_participants
+            if (parseInt(numAdultsInput.value) !== initialParticipants) {
+                numAdultsInput.value = initialParticipants;
+                console.log('Updated num_adults to:', numAdultsInput.value);
+            }
+
+            // Manually trigger input event to ensure any listeners are notified
+            const inputEvent = new Event('input', { bubbles: true });
+            numAdultsInput.dispatchEvent(inputEvent);
+
+            // Also trigger change event
+            const changeEvent = new Event('change', { bubbles: true });
+            numAdultsInput.dispatchEvent(changeEvent);
+
+            // Update tour summary
+            updateTourSummary();
+        }
+
+        // Update tour summary on page load
+        setTimeout(function() {
+            updateTourSummary();
+
+            // Log the current state after updates
+            console.log('After initialization:');
+            console.log('- num_adults value:', numAdultsInput ? numAdultsInput.value : 'N/A');
+            console.log('- booking-travelers text:', document.getElementById('booking-travelers') ?
+                document.getElementById('booking-travelers').textContent : 'N/A');
+            console.log('- payment-travelers text:', document.getElementById('payment-travelers') ?
+                document.getElementById('payment-travelers').textContent : 'N/A');
+        }, 100);
+    });
+
+    function initBookingForm() {
+        // DOM elements
+        const startDateInput = document.getElementById('start_date');
+        const endDateInput = document.getElementById('end_date');
+        const numAdultsInput = document.getElementById('num_adults');
+        const numChildrenInput = document.getElementById('num_children');
+        const specialRequestsInput = document.getElementById('special_requests');
+        const bookingDatesSpan = document.getElementById('booking-dates');
+        const bookingTravelersSpan = document.getElementById('booking-travelers');
+        const bookingForm = document.getElementById('booking-form');
+
+        // Tour data
+        const tourDurationDays = {{ tour.duration_days }};
+        const tourPrice = {{ tour.price }};
+        const childPrice = {{ child_price|default:'0' }};
+        const currencyCode = '{{ currency_code|default:"USD" }}';
+        const hasDiscount = {% if tour.has_discount %}true{% else %}false{% endif %};
+        const discountPercentage = {{ tour.discount_percentage|default:'0' }};
+        const discountPerPerson = {{ discount_per_person|default:'0' }};
+
+        // Check if data was passed from tour detail page
+        const fromTourDetail = {% if from_tour_detail %}true{% else %}false{% endif %};
+        console.log('Data from tour detail page:', fromTourDetail);
+
+        // Pre-calculated values
+        const initialSubtotal = {{ subtotal|default:'0' }};
+        const initialDiscount = {{ discount_amount|default:'0' }};
+        const initialTotal = {{ total_price|default:'0' }};
+
+        // Booking data
+        let bookingId = null;
+        let bookingReference = null;
+        let totalPrice = tourPrice;
+
+        // Set today as the minimum date for start_date
+        const today = new Date();
+        startDateInput.min = today.toISOString().split('T')[0];
+
+        // Add event listener for num_adults input
+        numAdultsInput.addEventListener('change', function() {
+            console.log('num_adults changed to:', this.value);
+            updateTourSummary();
+        });
+
+        // Calculate end date when start date changes
+        startDateInput.addEventListener('change', function() {
+            if (this.value) {
+                const startDate = new Date(this.value);
+                const endDate = new Date(startDate);
+                endDate.setDate(startDate.getDate() + tourDurationDays);
+                endDateInput.value = endDate.toISOString().split('T')[0];
+
+                // Update booking dates display
+                const options = { year: 'numeric', month: 'short', day: 'numeric' };
+                bookingDatesSpan.textContent = `${startDate.toLocaleDateString(undefined, options)} - ${endDate.toLocaleDateString(undefined, options)}`;
+            }
+        });
+
+        // Adults increment/decrement buttons
+        document.getElementById('increment-adults-btn').addEventListener('click', function() {
+            numAdultsInput.value = parseInt(numAdultsInput.value) + 1;
+            updateTourSummary();
+        });
+
+        document.getElementById('decrement-adults-btn').addEventListener('click', function() {
+            const currentValue = parseInt(numAdultsInput.value);
+            if (currentValue > 1) {
+                numAdultsInput.value = currentValue - 1;
+                updateTourSummary();
+            }
+        });
+
+        // Children increment/decrement buttons
+        document.getElementById('increment-children-btn').addEventListener('click', function() {
+            numChildrenInput.value = parseInt(numChildrenInput.value) + 1;
+            updateTourSummary();
+        });
+
+        document.getElementById('decrement-children-btn').addEventListener('click', function() {
+            const currentValue = parseInt(numChildrenInput.value);
+            if (currentValue > 0) {
+                numChildrenInput.value = currentValue - 1;
+                updateTourSummary();
+            }
+        });
+
+        // Update travelers display (simplified version since updateTourSummary now handles most of this)
+        function updateTravelersDisplay() {
+            const adults = parseInt(numAdultsInput.value) || 1;
+            const children = parseInt(numChildrenInput.value) || 0;
+
+            console.log('Updating travelers display (simplified):', adults, 'adults,', children, 'children');
+
+            // Generate travelers text
+            let displayText = '';
+            if (adults === 1) {
+                displayText = `1 {% trans "Adult" %}`;
+            } else {
+                displayText = `${adults} {% trans "Adults" %}`;
+            }
+
+            if (children > 0) {
+                if (children === 1) {
+                    displayText += `, 1 {% trans "Child" %}`;
+                } else {
+                    displayText += `, ${children} {% trans "Children" %}`;
+                }
+            }
+
+            // Make sure booking travelers span exists before updating it
+            if (bookingTravelersSpan) {
+                bookingTravelersSpan.textContent = displayText;
+                console.log('Updated booking travelers display to:', displayText);
+            } else {
+                console.error('Booking travelers span not found');
+            }
+
+            // Also update the num_adults input value to ensure it's correct
+            if (numAdultsInput && parseInt(numAdultsInput.value) !== adults) {
+                numAdultsInput.value = adults;
+                console.log('Corrected num_adults input value to:', adults);
+            }
+        }
+
+        // Update price summary (simplified version since updateTourSummary now handles most of this)
+        function updatePriceSummary() {
+            const adults = parseInt(numAdultsInput.value) || 1;
+            const children = parseInt(numChildrenInput.value) || 0;
+
+            console.log('Updating price summary (simplified):', adults, 'adults,', children, 'children');
+            console.log('Tour price:', tourPrice, 'Child price:', childPrice);
+
+            // Calculate amounts
+            let adultAmount, childAmount, subtotal, discountAmount, total;
+
+            if (fromTourDetail && adults === {{ initial_participants }} && children === 0) {
+                // Use pre-calculated values from tour detail page
+                adultAmount = adults * tourPrice;
+                childAmount = children * childPrice;
+                subtotal = initialSubtotal;
+                discountAmount = initialDiscount;
+                total = initialTotal;
+
+                console.log('updatePriceSummary: Using pre-calculated values from tour detail page:', {
+                    subtotal,
+                    discountAmount,
+                    total
+                });
+            } else {
+                // Calculate values
+                adultAmount = adults * tourPrice;
+                childAmount = children * childPrice;
+                subtotal = adultAmount + childAmount;
+
+                discountAmount = 0;
+                if (hasDiscount) {
+                    // Use the pre-calculated discount per person
+                    const singleAdultDiscount = discountPerPerson;
+                    const singleChildDiscount = discountPerPerson * 0.5; // Children get half the discount
+
+                    // Calculate total discount
+                    discountAmount = (singleAdultDiscount * adults) + (singleChildDiscount * children);
+
+                    // Log detailed discount calculation
+                    console.log('updatePriceSummary discount calculation:', {
+                        tourPrice,
+                        discountPercentage,
+                        discountPerPerson,
+                        singleAdultDiscount,
+                        singleChildDiscount,
+                        adults,
+                        children,
+                        discountAmount,
+                        totalDiscount: discountAmount
+                    });
+                }
+
+                total = subtotal - discountAmount;
+            }
+
+            totalPrice = total; // Store for PayPal
+
+            console.log('Price calculations:', 'Adult amount:', adultAmount, 'Child amount:', childAmount, 'Subtotal:', subtotal, 'Discount:', discountAmount, 'Total:', total);
+        }
+
+        // Function to update tour summary in all steps
+        function updateTourSummary() {
+            const adults = parseInt(numAdultsInput.value) || 1;
+            const children = parseInt(numChildrenInput.value) || 0;
+
+            console.log('Updating tour summary with:', adults, 'adults,', children, 'children');
+
+            // Update travelers display
+            updateTravelersDisplay();
+
+            // Update price summary
+            updatePriceSummary();
+
+            // Generate travelers text
+            let travelersText = '';
+            if (adults === 1) {
+                travelersText = `1 {% trans "Adult" %}`;
+            } else {
+                travelersText = `${adults} {% trans "Adults" %}`;
+            }
+
+            if (children > 0) {
+                if (children === 1) {
+                    travelersText += `, 1 {% trans "Child" %}`;
+                } else {
+                    travelersText += `, ${children} {% trans "Children" %}`;
+                }
+            }
+
+            // Update booking-travelers in the right sidebar
+            const bookingTravelersEl = document.getElementById('booking-travelers');
+            if (bookingTravelersEl) {
+                bookingTravelersEl.textContent = travelersText;
+                console.log('Updated booking travelers to:', travelersText);
+            }
+
+            // Calculate amounts
+            let adultAmount, childAmount, subtotal, discountAmount, total;
+
+            if (fromTourDetail && adults === {{ initial_participants }} && children === 0) {
+                // Use pre-calculated values from tour detail page
+                adultAmount = adults * tourPrice;
+                childAmount = children * childPrice;
+                subtotal = initialSubtotal;
+                discountAmount = initialDiscount;
+                total = initialTotal;
+
+                console.log('Using pre-calculated values from tour detail page:', {
+                    subtotal,
+                    discountAmount,
+                    total
+                });
+            } else {
+                // Calculate values
+                adultAmount = adults * tourPrice;
+                childAmount = children * childPrice;
+                subtotal = adultAmount + childAmount;
+
+                discountAmount = 0;
+                if (hasDiscount) {
+                    // Use the pre-calculated discount per person
+                    const singleAdultDiscount = discountPerPerson;
+                    const singleChildDiscount = discountPerPerson * 0.5; // Children get half the discount
+
+                    // Calculate total discount
+                    discountAmount = (singleAdultDiscount * adults) + (singleChildDiscount * children);
+
+                    // Log detailed discount calculation
+                    console.log('updateTourSummary discount calculation:', {
+                        tourPrice,
+                        discountPercentage,
+                        discountPerPerson,
+                        singleAdultDiscount,
+                        singleChildDiscount,
+                        adults,
+                        children,
+                        discountAmount,
+                        totalDiscount: discountAmount
+                    });
+                }
+
+                total = subtotal - discountAmount;
+            }
+
+            // Update right sidebar price summary
+            const adultsLabelEl = document.getElementById('adults-label');
+            const adultsAmountEl = document.getElementById('adults-amount');
+            const childrenRowEl = document.getElementById('children-row');
+            const childrenLabelEl = document.getElementById('children-label');
+            const childrenAmountEl = document.getElementById('children-amount');
+            const subtotalAmountEl = document.getElementById('subtotal-amount');
+            const discountAmountEl = document.getElementById('discount-amount');
+            const totalAmountEl = document.getElementById('total-amount');
+
+            if (adultsLabelEl) {
+                adultsLabelEl.textContent = `{% trans "Adults" %} (${adults} x ${tourPrice.toFixed(2)} ${currencyCode})`;
+                console.log('Updated adults label to:', adultsLabelEl.textContent);
+            }
+
+            if (adultsAmountEl) {
+                adultsAmountEl.textContent = `${adultAmount.toFixed(2)} ${currencyCode}`;
+                console.log('Updated adults amount to:', adultsAmountEl.textContent);
+            }
+
+            if (childrenRowEl) {
+                if (children > 0) {
+                    childrenRowEl.style.display = 'flex';
+                    if (childrenLabelEl) {
+                        childrenLabelEl.textContent = `{% trans "Children" %} (${children} x ${childPrice.toFixed(2)} ${currencyCode})`;
+                    }
+                    if (childrenAmountEl) {
+                        childrenAmountEl.textContent = `${childAmount.toFixed(2)} ${currencyCode}`;
+                    }
+                } else {
+                    childrenRowEl.style.display = 'none';
+                }
+            }
+
+            if (subtotalAmountEl) {
+                subtotalAmountEl.textContent = `${subtotal.toFixed(2)} ${currencyCode}`;
+                console.log('Updated subtotal amount to:', subtotalAmountEl.textContent);
+            }
+
+            if (hasDiscount && discountAmountEl) {
+                discountAmountEl.textContent = `-${discountAmount.toFixed(2)} ${currencyCode}`;
+                console.log('Updated discount amount to:', discountAmountEl.textContent);
+            }
+
+            if (totalAmountEl) {
+                totalAmountEl.textContent = `${total.toFixed(2)} ${currencyCode}`;
+                console.log('Updated total amount to:', totalAmountEl.textContent);
+            }
+
+            // Update payment step summary (if elements exist)
+            const paymentTravelersEl = document.getElementById('payment-travelers');
+            if (paymentTravelersEl) {
+                paymentTravelersEl.textContent = travelersText;
+                console.log('Updated payment travelers to:', travelersText);
+            }
+
+            // Update payment price details if elements exist
+            const paymentAdultsLabelEl = document.getElementById('payment-adults-label');
+            const paymentAdultsAmountEl = document.getElementById('payment-adults-amount');
+            const paymentChildrenRowEl = document.getElementById('payment-children-row');
+            const paymentChildrenLabelEl = document.getElementById('payment-children-label');
+            const paymentChildrenAmountEl = document.getElementById('payment-children-amount');
+            const paymentSubtotalEl = document.getElementById('payment-subtotal-amount');
+            const paymentDiscountEl = document.getElementById('payment-discount-amount');
+            const paymentTotalEl = document.getElementById('payment-total-amount');
+
+            if (paymentAdultsLabelEl) {
+                paymentAdultsLabelEl.textContent = `{% trans "Adults" %} (${adults} x ${tourPrice.toFixed(2)} ${currencyCode})`;
+            }
+
+            if (paymentAdultsAmountEl) {
+                paymentAdultsAmountEl.textContent = `${adultAmount.toFixed(2)} ${currencyCode}`;
+            }
+
+            if (paymentChildrenRowEl) {
+                if (children > 0) {
+                    paymentChildrenRowEl.style.display = 'flex';
+                    if (paymentChildrenLabelEl) {
+                        paymentChildrenLabelEl.textContent = `{% trans "Children" %} (${children} x ${childPrice.toFixed(2)} ${currencyCode})`;
+                    }
+                    if (paymentChildrenAmountEl) {
+                        paymentChildrenAmountEl.textContent = `${childAmount.toFixed(2)} ${currencyCode}`;
+                    }
+                } else {
+                    paymentChildrenRowEl.style.display = 'none';
+                }
+            }
+
+            if (paymentSubtotalEl) {
+                paymentSubtotalEl.textContent = `${subtotal.toFixed(2)} ${currencyCode}`;
+            }
+
+            if (hasDiscount && paymentDiscountEl) {
+                paymentDiscountEl.textContent = `-${discountAmount.toFixed(2)} ${currencyCode}`;
+            }
+
+            if (paymentTotalEl) {
+                paymentTotalEl.textContent = `${total.toFixed(2)} ${currencyCode}`;
+            }
+        }
+
+        // Generate invoice number
+        function generateInvoiceNumber() {
+            const timestamp = new Date().getTime().toString().slice(-6);
+            const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+            return `INV-${timestamp}-${random}`;
+        }
+
+        // Set invoice number
+        const invoiceNumber = generateInvoiceNumber();
+        document.getElementById('invoice-number').textContent = invoiceNumber;
+
+        // Step navigation
+        document.getElementById('to-step-2-btn').addEventListener('click', function() {
+            // Validate form
+            if (!validateBookingForm()) {
+                return;
+            }
+
+            // Update review step with form data
+            updateReviewStep();
+
+            // Move to step 2
+            goToStep(2);
+        });
+
+        // Back to step 1
+        document.getElementById('back-to-step-1-btn').addEventListener('click', function() {
+            goToStep(1);
+        });
+
+        // To step 3
+        document.getElementById('to-step-3-btn').addEventListener('click', function() {
+            // Submit form to create booking
+            submitBookingForm();
+        });
+
+        // Back to step 2
+        document.getElementById('back-to-step-2-btn').addEventListener('click', function() {
+            goToStep(2);
+        });
+
+        // Print confirmation
+        document.getElementById('print-confirmation-btn').addEventListener('click', function() {
+            window.print();
+        });
+
+        // Form validation
+        function validateBookingForm() {
+            const startDate = startDateInput.value;
+            const adults = parseInt(numAdultsInput.value);
+
+            if (!startDate) {
+                alert('{% trans "Please select a start date" %}');
+                startDateInput.focus();
+                return false;
+            }
+
+            if (adults < 1) {
+                alert('{% trans "At least one adult is required" %}');
+                numAdultsInput.focus();
+                return false;
+            }
+
+            return true;
+        }
+
+        // Update review step with form data
+        function updateReviewStep() {
+            const adults = parseInt(numAdultsInput.value);
+            const children = parseInt(numChildrenInput.value);
+
+            // Calculate amounts
+            const adultAmount = adults * tourPrice;
+            const childAmount = children * childPrice;
+            const subtotal = adultAmount + childAmount;
+
+            // Calculate discount if applicable
+            let discountAmount = 0;
+            if (hasDiscount) {
+                // Calculate discount per person correctly
+                const singleAdultDiscount = tourPrice * (discountPercentage / 100);
+                const singleChildDiscount = childPrice * (discountPercentage / 100);
+
+                // Calculate total discount
+                discountAmount = (singleAdultDiscount * adults) + (singleChildDiscount * children);
+
+                console.log('Review step discount calculation:', {
+                    tourPrice,
+                    discountPercentage,
+                    singleAdultDiscount,
+                    singleChildDiscount,
+                    adults,
+                    children,
+                    discountAmount
+                });
+            }
+
+            const total = subtotal - discountAmount;
+
+            // Format dates
+            const startDate = new Date(startDateInput.value);
+            const endDate = new Date(endDateInput.value);
+            const options = { year: 'numeric', month: 'short', day: 'numeric' };
+
+            // Update review step elements
+            document.getElementById('invoice-date').textContent = new Date().toLocaleDateString(undefined, options);
+            document.getElementById('review-travel-dates').textContent = `${startDate.toLocaleDateString(undefined, options)} - ${endDate.toLocaleDateString(undefined, options)}`;
+
+            // Update travelers info
+            let travelersText = '';
+            if (adults === 1) {
+                travelersText = `1 {% trans "Adult" %}`;
+            } else {
+                travelersText = `${adults} {% trans "Adults" %}`;
+            }
+
+            if (children > 0) {
+                if (children === 1) {
+                    travelersText += `, 1 {% trans "Child" %}`;
+                } else {
+                    travelersText += `, ${children} {% trans "Children" %}`;
+                }
+                document.getElementById('review-children-row').style.display = 'flex';
+            } else {
+                document.getElementById('review-children-row').style.display = 'none';
+            }
+
+            document.getElementById('review-travelers').textContent = travelersText;
+
+            // Update price details
+            document.getElementById('review-adults-label').textContent = `{% trans "Adults" %} (${adults} x ${tourPrice.toFixed(2)} ${currencyCode})`;
+            document.getElementById('review-adults-amount').textContent = `${adultAmount.toFixed(2)} ${currencyCode}`;
+
+            if (children > 0) {
+                document.getElementById('review-children-label').textContent = `{% trans "Children" %} (${children} x ${childPrice.toFixed(2)} ${currencyCode})`;
+                document.getElementById('review-children-amount').textContent = `${childAmount.toFixed(2)} ${currencyCode}`;
+            }
+
+            document.getElementById('review-subtotal-amount').textContent = `${subtotal.toFixed(2)} ${currencyCode}`;
+
+            if (hasDiscount) {
+                document.getElementById('review-discount-amount').textContent = `-${discountAmount.toFixed(2)} ${currencyCode}`;
+            }
+
+            document.getElementById('review-total-amount').textContent = `${total.toFixed(2)} ${currencyCode}`;
+        }
+
+        // Submit booking form via AJAX
+        function submitBookingForm() {
+            // Get form data
+            const formData = new FormData(bookingForm);
+
+            // Show loading state
+            document.getElementById('to-step-3-btn').innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> {% trans "Processing..." %}';
+            document.getElementById('to-step-3-btn').disabled = true;
+
+            // Send AJAX request to the current URL
+            fetch(window.location.href, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Store booking data
+                    bookingId = data.booking_id;
+                    bookingReference = data.booking_reference;
+
+                    // Update booking reference in review and payment steps
+                    document.getElementById('review-booking-reference').textContent = bookingReference;
+                    document.getElementById('confirmation-booking-reference').textContent = bookingReference;
+
+                    // Update payment step
+                    const startDate = new Date(startDateInput.value);
+                    const endDate = new Date(endDateInput.value);
+                    const options = { year: 'numeric', month: 'short', day: 'numeric' };
+                    const adults = parseInt(numAdultsInput.value);
+                    const children = parseInt(numChildrenInput.value);
+
+                    // Calculate amounts for payment step
+                    const adultAmount = adults * tourPrice;
+                    const childAmount = children * childPrice;
+                    const subtotal = adultAmount + childAmount;
+                    let discountAmount = 0;
+                    if (hasDiscount) {
+                        // Calculate discount per person correctly
+                        const singleAdultDiscount = tourPrice * (discountPercentage / 100);
+                        const singleChildDiscount = childPrice * (discountPercentage / 100);
+
+                        // Calculate total discount
+                        discountAmount = (singleAdultDiscount * adults) + (singleChildDiscount * children);
+
+                        console.log('Payment step discount calculation:', {
+                            tourPrice,
+                            discountPercentage,
+                            singleAdultDiscount,
+                            singleChildDiscount,
+                            adults,
+                            children,
+                            discountAmount
+                        });
+                    }
+                    const total = subtotal - discountAmount;
+
+                    // Update tour summary in payment step
+                    document.getElementById('payment-travel-dates').textContent = `${startDate.toLocaleDateString(undefined, options)} - ${endDate.toLocaleDateString(undefined, options)}`;
+
+                    // Update travelers info
+                    let travelersText = '';
+                    if (adults === 1) {
+                        travelersText = `1 {% trans "Adult" %}`;
+                    } else {
+                        travelersText = `${adults} {% trans "Adults" %}`;
+                    }
+
+                    if (children > 0) {
+                        if (children === 1) {
+                            travelersText += `, 1 {% trans "Child" %}`;
+                        } else {
+                            travelersText += `, ${children} {% trans "Children" %}`;
+                        }
+                        document.getElementById('payment-children-row').style.display = 'flex';
+                    } else {
+                        document.getElementById('payment-children-row').style.display = 'none';
+                    }
+
+                    document.getElementById('payment-travelers').textContent = travelersText;
+
+                    // Update price details
+                    document.getElementById('payment-adults-label').textContent = `{% trans "Adults" %} (${adults} x ${tourPrice.toFixed(2)} ${currencyCode})`;
+                    document.getElementById('payment-adults-amount').textContent = `${adultAmount.toFixed(2)} ${currencyCode}`;
+
+                    if (children > 0) {
+                        document.getElementById('payment-children-label').textContent = `{% trans "Children" %} (${children} x ${childPrice.toFixed(2)} ${currencyCode})`;
+                        document.getElementById('payment-children-amount').textContent = `${childAmount.toFixed(2)} ${currencyCode}`;
+                    }
+
+                    document.getElementById('payment-subtotal-amount').textContent = `${subtotal.toFixed(2)} ${currencyCode}`;
+
+                    if (hasDiscount) {
+                        document.getElementById('payment-discount-amount').textContent = `-${discountAmount.toFixed(2)} ${currencyCode}`;
+                    }
+
+                    document.getElementById('payment-total-amount').textContent = `${total.toFixed(2)} ${currencyCode}`;
+
+                    // Initialize PayPal
+                    initPayPalButton(bookingId, totalPrice, currencyCode);
+
+                    // Update tour summary one more time before moving to step 3
+                    updateTourSummary();
+
+                    // Move to step 3
+                    goToStep(3);
+                } else {
+                    // Show error
+                    alert(data.error || '{% trans "An error occurred. Please try again." %}');
+
+                    // Reset button
+                    document.getElementById('to-step-3-btn').innerHTML = '<span class="mr-2">{% trans "Proceed to Payment" %}</span><i class="fas fa-arrow-right"></i>';
+                    document.getElementById('to-step-3-btn').disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('{% trans "An error occurred. Please try again." %}');
+
+                // Reset button
+                document.getElementById('to-step-3-btn').innerHTML = '<span class="mr-2">{% trans "Proceed to Payment" %}</span><i class="fas fa-arrow-right"></i>';
+                document.getElementById('to-step-3-btn').disabled = false;
+            });
+        }
+
+        // Initialize PayPal button
+        function initPayPalButton(bookingId, amount, currencyCode) {
+            // Use real PayPal integration
+            const testModeEnabled = false; // Set to false to use real PayPal integration
+
+            if (testModeEnabled) {
+                // Show test payment button instead of PayPal
+                document.getElementById('paypal-button-container').innerHTML = `
+                    <div class="bg-blue-50 p-4 rounded-lg text-center mb-4">
+                        <p class="text-blue-800 font-medium">{% trans "Test Mode Enabled" %}</p>
+                        <p class="text-blue-700 text-sm mt-2">{% trans "This is a test environment. No real payments will be processed." %}</p>
+                    </div>
+                    <button id="test-payment-btn" class="w-full px-6 py-4 bg-blue-600 text-white font-medium rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-300 flex items-center justify-center">
+                        <i class="fab fa-paypal mr-2 text-lg"></i>
+                        <span class="text-lg">{% trans "Pay with PayPal" %}</span>
+                        <span class="ml-2 text-sm bg-blue-500 px-2 py-1 rounded">{% trans "Test" %}</span>
+                    </button>
+                `;
+
+                // Add event listener to test payment button
+                document.getElementById('test-payment-btn').addEventListener('click', function() {
+                    // Show loading state
+                    document.getElementById('paypal-button-container').innerHTML = `
+                        <div class="bg-blue-50 p-4 rounded-lg text-center">
+                            <p class="text-blue-800 font-medium"><i class="fas fa-spinner fa-spin mr-2"></i> {% trans "Processing your test payment..." %}</p>
+                        </div>
+                    `;
+
+                    // Simulate payment processing
+                    setTimeout(() => {
+                        // Move to confirmation step
+                        goToStep(4);
+                    }, 2000);
+                });
+
+                return;
+            }
+
+            // Show loading state
+            document.getElementById('paypal-button-container').innerHTML = `
+                <div class="bg-blue-50 p-4 rounded-lg text-center">
+                    <p class="text-blue-800 font-medium"><i class="fas fa-spinner fa-spin mr-2"></i> {% trans "Loading PayPal..." %}</p>
+                </div>
+            `;
+
+            // Function to initialize PayPal buttons
+            const initPayPalButtons = () => {
+                if (typeof paypal === 'undefined') {
+                    console.error('PayPal SDK not loaded');
+                    document.getElementById('paypal-button-container').innerHTML = `
+                        <div class="bg-yellow-50 p-4 rounded-lg text-center">
+                            <p class="text-yellow-800 font-medium">{% trans "PayPal is not available at the moment. Please try again later." %}</p>
+                        </div>
+                        <div class="mt-4 p-4 border border-gray-200 rounded-lg">
+                            <p class="text-gray-700 text-sm mb-2">{% trans "Possible reasons:" %}</p>
+                            <ul class="text-sm text-gray-600 list-disc pl-5 space-y-1">
+                                <li>{% trans "Internet connection issues" %}</li>
+                                <li>{% trans "PayPal services may be temporarily unavailable" %}</li>
+                                <li>{% trans "PayPal SDK failed to load" %}</li>
+                            </ul>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Clear any existing buttons
+                document.getElementById('paypal-button-container').innerHTML = '';
+
+                // Create a direct payment button first
+                const directPaymentButton = document.createElement('button');
+                directPaymentButton.id = 'direct-paypal-button';
+                directPaymentButton.className = 'w-full px-6 py-4 bg-blue-600 text-white font-medium rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-300 flex items-center justify-center mb-4';
+                directPaymentButton.innerHTML = `
+                    <i class="fab fa-paypal mr-2 text-lg"></i>
+                    <span class="text-lg">{% trans "Pay with PayPal" %}</span>
+                `;
+                document.getElementById('paypal-button-container').appendChild(directPaymentButton);
+
+                // Add event listener to direct payment button
+                directPaymentButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+
+                    // Show loading state
+                    document.getElementById('paypal-button-container').innerHTML = `
+                        <div class="bg-blue-50 p-4 rounded-lg text-center">
+                            <p class="text-blue-800 font-medium"><i class="fas fa-spinner fa-spin mr-2"></i> {% trans "Connecting to PayPal..." %}</p>
+                        </div>
+                    `;
+
+                    // Create PayPal order via AJAX
+                    const createOrderUrl = URLS.createPaypalOrder(bookingId);
+
+                    fetch(createOrderUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({}) // Empty body but still valid JSON
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            console.error('PayPal create order response not OK:', response.status, response.statusText);
+                            return response.text().then(text => {
+                                console.error('Response text:', text);
+                                throw new Error(`Server error: ${response.status} ${response.statusText}`);
+                            });
+                        }
+                        return response.json();
+                    })
+                    .then(orderData => {
+                        console.log('PayPal order created:', orderData);
+                        if (orderData.error) {
+                            throw new Error(orderData.error);
+                        }
+
+                        // Find the approval URL
+                        let approvalUrl = null;
+                        if (orderData.links) {
+                            for (const link of orderData.links) {
+                                if (link.rel === 'approve') {
+                                    approvalUrl = link.href;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (!approvalUrl) {
+                            throw new Error('No approval URL found in PayPal response');
+                        }
+
+                        // Open PayPal in a new window
+                        const paypalWindow = window.open(approvalUrl, 'paypal_window', 'width=1000,height=680');
+
+                        // Show message about popup
+                        document.getElementById('paypal-button-container').innerHTML = `
+                            <div class="bg-blue-50 p-4 rounded-lg text-center mb-4">
+                                <p class="text-blue-800 font-medium">{% trans "PayPal window opened" %}</p>
+                                <p class="text-blue-700 text-sm mt-2">{% trans "Please complete your payment in the PayPal window. If you don't see it, check if it was blocked by your browser." %}</p>
+                            </div>
+                            <button id="reopen-paypal-btn" class="w-full px-6 py-4 bg-blue-600 text-white font-medium rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-300 flex items-center justify-center">
+                                <i class="fab fa-paypal mr-2 text-lg"></i>
+                                <span class="text-lg">{% trans "Reopen PayPal Window" %}</span>
+                            </button>
+                        `;
+
+                        // Add event listener to reopen button
+                        document.getElementById('reopen-paypal-btn').addEventListener('click', function() {
+                            if (paypalWindow.closed) {
+                                window.open(approvalUrl, 'paypal_window', 'width=1000,height=680');
+                            } else {
+                                paypalWindow.focus();
+                            }
+                        });
+
+                        // Poll for payment completion
+                        const checkPaymentInterval = setInterval(() => {
+                            const captureUrl = URLS.capturePaypalPayment(bookingId);
+
+                            fetch(captureUrl, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                },
+                                body: JSON.stringify({
+                                    order_id: orderData.id
+                                })
+                            })
+                            .then(response => response.json())
+                            .then(captureData => {
+                                if (captureData.success) {
+                                    clearInterval(checkPaymentInterval);
+
+                                    // Update confirmation page with booking reference
+                                    document.getElementById('confirmation-booking-reference').textContent =
+                                        captureData.booking_reference || bookingReference;
+
+                                    // Move to confirmation step
+                                    goToStep(4);
+                                }
+                            })
+                            .catch(err => {
+                                console.log('Payment not completed yet:', err);
+                            });
+                        }, 3000); // Check every 3 seconds
+                    })
+                    .catch(err => {
+                        console.error('Error creating PayPal order:', err);
+                        document.getElementById('paypal-button-container').innerHTML = `
+                            <div class="bg-red-50 p-4 rounded-lg text-center">
+                                <p class="text-red-800 font-medium">{% trans "Payment failed. Please try again." %}</p>
+                                <p class="text-red-700 text-sm mt-2">${err.message}</p>
+                            </div>
+                            <button id="retry-paypal-btn" class="w-full mt-4 px-6 py-3 bg-blue-600 text-white font-medium rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-300">
+                                <i class="fas fa-redo mr-2"></i> {% trans "Try Again" %}
+                            </button>
+                        `;
+
+                        // Add retry button event listener
+                        document.getElementById('retry-paypal-btn').addEventListener('click', function() {
+                            initPayPalButton(bookingId, amount, currencyCode);
+                        });
+                    });
+                });
+            };
+
+            // Check if PayPal SDK is already loaded
+            if (typeof paypal !== 'undefined') {
+                initPayPalButtons();
+            } else {
+                // Wait for PayPal SDK to load
+                window.addEventListener('paypal-sdk-loaded', initPayPalButtons);
+            }
+        }
+
+        // Navigation between steps
+        function goToStep(stepNumber) {
+            console.log('Going to step:', stepNumber);
+
+            // If going to payment step (step 3), update tour summary
+            if (stepNumber === 3) {
+                console.log('Updating tour summary for payment step');
+                updateTourSummary();
+            }
+
+            // Calculate progress percentage based on step number (0%, 33.33%, 66.66%, 100%)
+            const progressPercentage = (stepNumber - 1) * 33.33;
+
+            // Update progress bar with animation
+            const progressFill = document.getElementById('progress-fill');
+            progressFill.style.width = `${progressPercentage}%`;
+
+            // Update step indicators
+            for (let i = 1; i <= 4; i++) {
+                const stepEl = document.getElementById(`step-${i}`);
+                const circleEl = stepEl.querySelector('.w-8');
+                const textEl = stepEl.querySelector('span:not(.step-number)');
+                const numberEl = stepEl.querySelector('.step-number');
+                const iconEl = stepEl.querySelector('.step-icon');
+
+                if (i < stepNumber) {
+                    // Completed steps
+                    stepEl.classList.remove('bg-blue-50');
+                    stepEl.classList.add('bg-green-50');
+                    stepEl.classList.remove('border-blue-500', 'border-gray-200');
+                    stepEl.classList.add('border-green-500');
+
+                    // Update circle
+                    circleEl.classList.remove('bg-blue-500', 'bg-gray-300');
+                    circleEl.classList.add('bg-green-500');
+                    circleEl.classList.remove('progress-pulse');
+                    circleEl.classList.remove('shadow-sm');
+                    circleEl.classList.add('shadow');
+
+                    // Show check icon instead of number
+                    numberEl.classList.add('hidden');
+                    iconEl.classList.remove('hidden');
+
+                    // Update text color
+                    textEl.classList.remove('text-blue-700', 'text-gray-500');
+                    textEl.classList.add('text-green-700');
+
+                } else if (i === stepNumber) {
+                    // Active step
+                    stepEl.classList.add('bg-blue-50');
+                    stepEl.classList.remove('bg-green-50');
+                    stepEl.classList.add('border-blue-500');
+                    stepEl.classList.remove('border-gray-200', 'border-green-500');
+
+                    // Update circle
+                    circleEl.classList.add('bg-blue-500');
+                    circleEl.classList.remove('bg-gray-300', 'bg-green-500');
+                    circleEl.classList.add('progress-pulse');
+                    circleEl.classList.remove('shadow-sm');
+                    circleEl.classList.add('shadow-md');
+
+                    // Show number
+                    numberEl.classList.remove('hidden');
+                    iconEl.classList.add('hidden');
+
+                    // Update text color
+                    textEl.classList.add('text-blue-700');
+                    textEl.classList.remove('text-gray-500', 'text-green-700');
+
+                } else {
+                    // Future steps
+                    stepEl.classList.remove('bg-blue-50', 'bg-green-50');
+                    stepEl.classList.remove('border-blue-500', 'border-green-500');
+                    stepEl.classList.add('border-gray-200');
+
+                    // Update circle
+                    circleEl.classList.remove('bg-blue-500', 'bg-green-500');
+                    circleEl.classList.add('bg-gray-300');
+                    circleEl.classList.remove('progress-pulse');
+                    circleEl.classList.remove('shadow-md');
+                    circleEl.classList.add('shadow-sm');
+
+                    // Show number
+                    numberEl.classList.remove('hidden');
+                    iconEl.classList.add('hidden');
+
+                    // Update text color
+                    textEl.classList.remove('text-blue-700', 'text-green-700');
+                    textEl.classList.add('text-gray-500');
+                }
+            }
+
+            // Show/hide step content with smooth transition
+            document.querySelectorAll('.booking-step').forEach(step => {
+                // First make them invisible but not hidden (for animation)
+                step.style.opacity = '0';
+
+                // After a short delay, hide the inactive steps
+                setTimeout(() => {
+                    if (!step.id.includes(stepNumber)) {
+                        step.classList.add('hidden');
+                    }
+                }, 300);
+            });
+
+            // Show the active step with fade-in effect
+            const activeStep = document.getElementById(`booking-step-${stepNumber}`);
+            activeStep.classList.remove('hidden');
+
+            // Use setTimeout to ensure the transition happens after the display change
+            setTimeout(() => {
+                activeStep.style.opacity = '1';
+            }, 50);
+
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const numAdultsInput = document.getElementById('num_adults');
+    const numChildrenInput = document.getElementById('num_children');
+    const tourPrice = {{ tour_price }};
+    const childPrice = {{ child_price }};
+    const hasDiscount = {% if tour_has_discount %}true{% else %}false{% endif %};
+    const discountPrice = {% if tour_has_discount %}{{ tour_discount_price }}{% else %}{{ tour_price }}{% endif %};
+    const currencyCode = '{{ currency_code }}';
+
+    function updateTourSummary() {
+        const adults = parseInt(numAdultsInput.value) || 1;
+        const children = parseInt(numChildrenInput.value) || 0;
+
+        // Update adults section
+        document.getElementById('adults-count').textContent = adults;
+        const adultsAmount = (hasDiscount ? discountPrice : tourPrice) * adults;
+        document.getElementById('adults-amount').textContent = adultsAmount.toFixed(2) + ' ' + currencyCode;
+
+        // Update children section
+        const childrenRow = document.getElementById('children-price-row');
+        if (children > 0) {
+            childrenRow.style.display = 'flex';
+            document.getElementById('children-count').textContent = children;
+            const childrenAmount = (hasDiscount ? discountPrice : tourPrice) * 0.5 * children;
+            document.getElementById('children-amount').textContent = childrenAmount.toFixed(2) + ' ' + currencyCode;
+        } else {
+            childrenRow.style.display = 'none';
+        }
+
+        // Calculate totals
+        const subtotal = (tourPrice * adults) + (tourPrice * 0.5 * children);
+        document.getElementById('summary-subtotal').textContent = subtotal.toFixed(2) + ' ' + currencyCode;
+
+        if (hasDiscount) {
+            // Calculate discount percentage
+            const discountPercentage = ((tourPrice - discountPrice) / tourPrice) * 100;
+
+            // Calculate discount per person correctly
+            const singleAdultDiscount = tourPrice * (discountPercentage / 100);
+            const singleChildDiscount = (tourPrice * 0.5) * (discountPercentage / 100);
+
+            // Calculate total discount
+            const discount = (singleAdultDiscount * adults) + (singleChildDiscount * children);
+
+            // Log detailed discount calculation
+            console.log('Summary discount calculation:', {
+                tourPrice,
+                discountPrice,
+                discountPercentage,
+                singleAdultDiscount,
+                singleChildDiscount,
+                adults,
+                children,
+                discount,
+                totalDiscount: discount * adults
+            });
+
+            document.getElementById('summary-discount').textContent = '-' + discount.toFixed(2) + ' ' + currencyCode;
+
+            // Update the discount-amount element if it exists
+            const discountAmountEl = document.getElementById('discount-amount');
+            if (discountAmountEl) {
+                discountAmountEl.textContent = '-' + discount.toFixed(2) + ' ' + currencyCode;
+            }
+        }
+
+        const total = (hasDiscount ? discountPrice : tourPrice) * adults +
+                     (hasDiscount ? discountPrice : tourPrice) * 0.5 * children;
+        document.getElementById('summary-total').textContent = total.toFixed(2) + ' ' + currencyCode;
+    }
+
+    // Add event listeners
+    if (numAdultsInput) {
+        numAdultsInput.addEventListener('change', updateTourSummary);
+    }
+    if (numChildrenInput) {
+        numChildrenInput.addEventListener('change', updateTourSummary);
+    }
+
+    // Initial update
+    updateTourSummary();
+});
+</script>
+{% endblock %}

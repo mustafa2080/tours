@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+{% load currency_filters %} {# Load the custom template tags #}
+
+{% block title %}{{ destination.name }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+
+    {% comment %} Destination Header {% endcomment %}
+    <div class="mb-8">
+        {% if destination.cover_image %}
+            <img src="{{ destination.cover_image.url }}" alt="{{ destination.name }}" class="w-full h-64 md:h-96 object-cover rounded-lg shadow-md mb-4">
+        {% endif %}
+        <h1 class="text-4xl font-bold mb-2">{{ destination.name }}</h1>
+        <p class="text-lg text-gray-600">{{ destination.country }}, {{ destination.city }}</p>
+        {% if destination.description %}
+            <p class="mt-4 text-gray-700">{{ destination.description|linebreaksbr }}</p>
+        {% endif %}
+    </div>
+
+    {% comment %} Tours List {% endcomment %}
+    <h2 class="text-3xl font-semibold mb-6">{% trans "Tours in" %} {{ destination.name }}</h2>
+
+    {% if tours %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for tour in tours %}
+                <div class="bg-white rounded-lg shadow-md overflow-hidden transform transition duration-300 hover:scale-105">
+                    <a href="{{ tour.get_absolute_url }}">
+                        {% if tour.cover_image %}
+                            <img src="{{ tour.cover_image.url }}" alt="{{ tour.name }}" class="w-full h-48 object-cover">
+                        {% else %}
+                            <div class="w-full h-48 bg-gray-200 flex items-center justify-center">
+                                <span class="text-gray-500">{% trans "No Image" %}</span>
+                            </div>
+                        {% endif %}
+                        <div class="p-4">
+                            <h3 class="text-xl font-semibold mb-2">{{ tour.name }}</h3>
+                            <p class="text-gray-600 text-sm mb-1">{% blocktrans with duration=tour.duration_days %}Duration: {{ duration }} days{% endblocktrans %}</p>
+                            <p class="text-lg font-bold text-blue-600">
+                                {% if tour.has_discount %}
+                                    {# Display original price crossed out, converted #}
+                                    <span class="text-gray-500 line-through mr-2">{% convert_currency tour.price tour.currency.code %}</span>
+                                    {# Display discount price converted #}
+                                    {% convert_currency tour.discount_price tour.currency.code %}
+                                {% else %}
+                                    {# Display regular price converted #}
+                                    {% convert_currency tour.price tour.currency.code %}
+                                {% endif %}
+                            </p>
+                            {% comment %} Add average rating if needed {% endcomment %}
+                            {% comment %}
+                            <div class="flex items-center mt-2">
+                                {% with avg_rating=tour.get_average_rating %}
+                                    {% if avg_rating > 0 %}
+                                        <span class="text-yellow-500 mr-1">★</span>
+                                        <span class="text-gray-700">{{ avg_rating|floatformat:1 }}</span>
+                                        <span class="text-gray-500 text-sm ml-1">({% blocktrans count counter=tour.get_review_count %}{{ counter }} review{% plural %}{{ counter }} reviews{% endblocktrans %})</span>
+                                    {% else %}
+                                        <span class="text-gray-500 text-sm">{% trans "No reviews yet" %}</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </div>
+                            {% endcomment %}
+                        </div>
+                    </a>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>{% blocktrans with destination_name=destination.name %}No tours currently available for {{ destination_name }}.{% endblocktrans %}</p>
+    {% endif %}
+
+    <div class="mt-8">
+        <a href="{% url 'tour:destination_list' %}" class="text-blue-600 hover:underline">{% trans "← Back to all destinations" %}</a>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <script type="text/javascript" src="{% url 'admin:jsi18n' %}"></script>
+    {{ media }}
+{% endblock %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <link rel="stylesheet" type="text/css" href="{% static "admin/css/forms.css" %}">
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+    &rsaquo; <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
+    &rsaquo; <a href="{% url opts|admin_urlname:'changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
+    &rsaquo; {% trans 'Import' %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <h1>{% trans "Import Tours" %}</h1>
+    
+    <div class="module">
+        <div class="form-row">
+            <p>{% trans "Upload a CSV or Excel file to import tours. The file should have the following columns:" %}</p>
+            <ul>
+                <li>{% trans "name_en (required): Tour name in English" %}</li>
+                <li>{% trans "destination (required): Destination name" %}</li>
+                <li>{% trans "price: Tour price" %}</li>
+                <li>{% trans "duration_days: Tour duration in days" %}</li>
+                <li>{% trans "duration_nights: Tour duration in nights" %}</li>
+                <li>{% trans "max_group_size: Maximum number of people" %}</li>
+                <li>{% trans "categories: Comma-separated list of category names" %}</li>
+                <li>{% trans "activities: Comma-separated list of activity names" %}</li>
+                <li>{% trans "is_featured: Whether the tour is featured (true/false)" %}</li>
+                <li>{% trans "is_active: Whether the tour is active (true/false)" %}</li>
+            </ul>
+            
+            <p>{% trans "For Excel files, you can also include sheets for Itinerary and FAQs." %}</p>
+            
+            <p>
+                <a href="{% url 'admin:download_sample_file' %}" class="button">
+                    {% trans "Download Sample File" %}
+                </a>
+            </p>
+        </div>
+        
+        <form action="" method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="form-row">
+                {{ form.file.errors }}
+                <label for="{{ form.file.id_for_label }}" class="required">{{ form.file.label }}:</label>
+                {{ form.file }}
+            </div>
+            
+            <div class="form-row">
+                {{ form.file_format.errors }}
+                <label for="{{ form.file_format.id_for_label }}" class="required">{{ form.file_format.label }}:</label>
+                {{ form.file_format }}
+            </div>
+            
+            <div class="form-row">
+                {{ form.create_missing_destinations.errors }}
+                <label for="{{ form.create_missing_destinations.id_for_label }}">{{ form.create_missing_destinations.label }}:</label>
+                {{ form.create_missing_destinations }}
+                <p class="help">{% trans "If checked, destinations that don't exist will be created automatically." %}</p>
+            </div>
+            
+            <div class="form-row">
+                {{ form.create_missing_categories.errors }}
+                <label for="{{ form.create_missing_categories.id_for_label }}">{{ form.create_missing_categories.label }}:</label>
+                {{ form.create_missing_categories }}
+                <p class="help">{% trans "If checked, categories that don't exist will be created automatically." %}</p>
+            </div>
+            
+            <div class="form-row">
+                {{ form.update_existing.errors }}
+                <label for="{{ form.update_existing.id_for_label }}">{{ form.update_existing.label }}:</label>
+                {{ form.update_existing }}
+                <p class="help">{% trans "If checked, existing tours with the same name will be updated." %}</p>
+            </div>
+            
+            <div class="submit-row">
+                <input type="submit" value="{% trans 'Import' %}" class="default" name="_import">
+                <a href="{% url opts|admin_urlname:'changelist' %}" class="button cancel-link">{% trans "Cancel" %}</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

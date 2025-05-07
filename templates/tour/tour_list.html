@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% load static i18n %}
+
+{% block title %}{% trans "Tours" %} | {% trans "Tourism Co." %}{% endblock %}
+
+{% block content %}
+<div class="bg-gradient-to-r from-blue-600 to-blue-800 py-12 mb-8 rounded-xl shadow-lg transform transition-all duration-500 hover:shadow-xl">
+    <div class="text-center px-4 sm:px-6">
+        <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4 animate-fadeIn">
+            {% trans "Discover Amazing Tours" %}
+        </h1>
+        <p class="text-lg text-blue-100 max-w-3xl mx-auto animate-slideUp">
+            {% trans "Explore our handpicked selection of tours and adventures around the world" %}
+        </p>
+    </div>
+</div>
+
+<!-- Search and Filter Section -->
+<div class="mb-8 bg-white rounded-xl shadow-md p-6 transform transition-all duration-500 hover:shadow-lg animate-fadeIn">
+    <form id="tour-filter-form" method="get" action="{% url 'tour:tour_list' %}" class="space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Search Input -->
+            <div>
+                <label for="search-input" class="block text-sm font-medium text-gray-700 mb-1">{% trans "Search" %}</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-search text-gray-400"></i>
+                    </div>
+                    <input type="text" name="search" id="search-input" value="{{ request.GET.search|default:'' }}"
+                           class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 shadow-sm"
+                           placeholder="{% trans 'Search tours, destinations...' %}">
+                </div>
+            </div>
+
+            <!-- Duration Filter -->
+            <div>
+                <label for="duration" class="block text-sm font-medium text-gray-700 mb-1">{% trans "Duration" %}</label>
+                <select name="duration" id="duration" class="block w-full pl-3 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 shadow-sm">
+                    <option value="">{% trans "Any duration" %}</option>
+                    <option value="1" {% if request.GET.duration == '1' %}selected{% endif %}>{% trans "1 day" %}</option>
+                    <option value="2" {% if request.GET.duration == '2' %}selected{% endif %}>{% trans "2 days" %}</option>
+                    <option value="3" {% if request.GET.duration == '3' %}selected{% endif %}>{% trans "3 days" %}</option>
+                    <option value="4" {% if request.GET.duration == '4' %}selected{% endif %}>{% trans "4 days" %}</option>
+                    <option value="5" {% if request.GET.duration == '5' %}selected{% endif %}>{% trans "5 days" %}</option>
+                    <option value="6" {% if request.GET.duration == '6' %}selected{% endif %}>{% trans "6 days" %}</option>
+                    <option value="10" {% if request.GET.duration == '10' %}selected{% endif %}>{% trans "10 days" %}</option>
+                    <option value="15" {% if request.GET.duration == '15' %}selected{% endif %}>{% trans "15 days" %}</option>
+                </select>
+            </div>
+
+            <!-- Destination Filter -->
+            <div>
+                <label for="destination" class="block text-sm font-medium text-gray-700 mb-1">{% trans "Destination" %}</label>
+                <select name="destination" id="destination" class="block w-full pl-3 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 shadow-sm">
+                    <option value="">{% trans "All destinations" %}</option>
+                    {% for destination in destinations %}
+                        <option value="{{ destination.slug }}" {% if request.GET.destination == destination.slug %}selected{% endif %}>{{ destination.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Price Range Filter -->
+        <div class="space-y-4">
+            <div class="flex justify-between items-center">
+                <label class="block text-sm font-medium text-gray-700">{% trans "Price Range" %}</label>
+                <span id="price-range-display" data-currency-symbol="$" class="text-sm font-medium text-gray-700">
+                    ${{ request.GET.min_price|default:'0' }} - ${{ request.GET.max_price|default:'10000' }}
+                </span>
+            </div>
+            <div id="price-range-slider" data-min-price="0" data-max-price="10000" class="mt-2"></div>
+            <div class="flex justify-between">
+                <input type="hidden" name="min_price" id="min-price" value="{{ request.GET.min_price|default:'0' }}">
+                <input type="hidden" name="max_price" id="max-price" value="{{ request.GET.max_price|default:'10000' }}">
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Category Filter -->
+            <div>
+                <label for="category" class="block text-sm font-medium text-gray-700 mb-1">{% trans "Category" %}</label>
+                <select name="category" id="category" class="block w-full pl-3 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 shadow-sm">
+                    <option value="">{% trans "All categories" %}</option>
+                    {% for category in categories %}
+                        <option value="{{ category.slug }}" {% if request.GET.category == category.slug %}selected{% endif %}>{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Sort By Filter -->
+            <div>
+                <label for="sort-by" class="block text-sm font-medium text-gray-700 mb-1">{% trans "Sort By" %}</label>
+                <select name="sort" id="sort-by" class="block w-full pl-3 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 shadow-sm">
+                    <option value="popularity" {% if request.GET.sort == 'popularity' %}selected{% endif %}>{% trans "Popularity" %}</option>
+                    <option value="price_low" {% if request.GET.sort == 'price_low' %}selected{% endif %}>{% trans "Price: Low to High" %}</option>
+                    <option value="price_high" {% if request.GET.sort == 'price_high' %}selected{% endif %}>{% trans "Price: High to Low" %}</option>
+                    <option value="name" {% if request.GET.sort == 'name' %}selected{% endif %}>{% trans "Name (A-Z)" %}</option>
+                    <option value="created_at" {% if request.GET.sort == 'created_at' %}selected{% endif %}>{% trans "Newest" %}</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="flex justify-center space-x-4">
+            <button id="clear-filters-btn" type="button" class="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300">
+                <i class="fas fa-times mr-2"></i> {% trans "Clear Filters" %}
+            </button>
+        </div>
+
+        <!-- Filter Status Indicator -->
+        <div id="filter-status" class="mt-4 text-center text-sm text-gray-500 hidden">
+            <span class="inline-flex items-center">
+                <i class="fas fa-sync-alt fa-spin mr-2 text-blue-500"></i>
+                <span id="filter-status-text">{% trans "Applying filters..." %}</span>
+            </span>
+        </div>
+    </form>
+</div>
+
+<!-- Tours Grid -->
+{% if tours %}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-10">
+    {% for tour in tours %}
+        {% include "tour/partials/tour_card.html" with tour=tour %}
+    {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if is_paginated %}
+<div class="mt-10 flex justify-center">
+    <div class="inline-flex rounded-md shadow-sm">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+           class="relative inline-flex items-center px-4 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors duration-300">
+            <i class="fas fa-chevron-left mr-1"></i> {% trans "Previous" %}
+        </a>
+        {% endif %}
+
+        <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-blue-50 text-sm font-medium text-blue-700">
+            {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+        </span>
+
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+           class="relative inline-flex items-center px-4 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors duration-300">
+            {% trans "Next" %} <i class="fas fa-chevron-right ml-1"></i>
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+{% else %}
+<!-- No Tours Found -->
+<div class="bg-white rounded-lg shadow-md p-10 text-center animate-fadeIn">
+    <div class="mb-4">
+        <i class="fas fa-map-marked-alt text-6xl text-gray-300"></i>
+    </div>
+    <h3 class="text-xl font-bold text-gray-700 mb-2">{% trans "No tours found" %}</h3>
+    <p class="text-gray-500 mb-6">{% trans "We couldn't find any tours matching your criteria." %}</p>
+    <a href="{% url 'tour:tour_list' %}" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-300 transform hover:scale-105">
+        <i class="fas fa-redo mr-2"></i> {% trans "Clear filters" %}
+    </a>
+</div>
+{% endif %}
+
+<!-- Custom CSS for animations -->
+<style>
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+
+    .animate-fadeIn {
+        animation: fadeIn 0.8s ease-out forwards;
+    }
+
+    .animate-slideUp {
+        animation: slideUp 0.8s ease-out forwards;
+    }
+
+    .animate-pulse {
+        animation: pulse 2s infinite;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Include noUiSlider for price range slider -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nouislider@14.6.3/distribute/nouislider.min.css">
+<script src="https://cdn.jsdelivr.net/npm/nouislider@14.6.3/distribute/nouislider.min.js"></script>
+
+<!-- Include tour filter JavaScript -->
+<script src="{% static 'js/tour-filter.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "users/dashboard_base.html" %}
+{% load i18n %}
+
+{% block dashboard_title %}{% trans "My Reviews" %}{% endblock dashboard_title %}
+
+{% block dashboard_content %}
+<h2 class="text-xl font-semibold mb-4">{% trans "My Reviews" %}</h2>
+
+{% if reviews %}
+    <div class="space-y-4">
+        {% for review in reviews %}
+            <div class="bg-white p-4 rounded-lg shadow border-l-4 {% if review.is_approved %}border-green-500{% else %}border-yellow-500{% endif %}">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <h3 class="font-semibold">
+                            <a href="{{ review.tour.get_absolute_url }}" class="text-blue-600 hover:underline">{{ review.tour.name }}</a>
+                        </h3>
+                        <p class="text-sm text-gray-600">{{ review.title }}</p>
+                    </div>
+                    <span class="text-xs px-2 py-0.5 rounded-full 
+                        {% if review.is_approved %}bg-green-100 text-green-800
+                        {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                        {% if review.is_approved %}{% trans "Approved" %}{% else %}{% trans "Pending Approval" %}{% endif %}
+                    </span>
+                </div>
+                <div class="flex items-center mb-2">
+                     <span class="text-yellow-500 mr-2">
+                        {% for i in "12345"|make_list %}
+                            <i class="{% if i|add:0 <= review.rating %}fas{% else %}far{% endif %} fa-star"></i>
+                        {% endfor %}
+                    </span>
+                    <span class="text-xs text-gray-500">{{ review.created_at|date:"d M Y" }}</span>
+                </div>
+                <p class="text-sm text-gray-700">{{ review.review }}</p>
+                {# Add Edit/Delete links if functionality exists #}
+            </div>
+        {% endfor %}
+    </div>
+
+    {# Pagination #}
+    {% include 'partials/pagination.html' %} {# Assumes a reusable pagination partial #}
+
+{% else %}
+    <p class="text-gray-600">{% trans "You haven't written any reviews yet." %}</p>
+{% endif %}
+
+{% endblock dashboard_content %}

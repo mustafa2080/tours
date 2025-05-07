@@ -1,0 +1,79 @@
+{% load i18n static currency_filters %} {# Added currency_filters #}
+{# Enhanced Tour Card Component #}
+<div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col h-full" dir="{{ LANGUAGE_BIDI|yesno:'rtl,ltr' }}">
+    <a href="{{ tour.get_absolute_url }}" class="block relative overflow-hidden group">
+        {% if tour.cover_image %}
+            <img src="{{ tour.cover_image.url }}" alt="{{ tour.name }}" class="w-full h-56 object-cover transform group-hover:scale-105 transition-transform duration-500">
+        {% else %}
+            <img src="{% static 'images/tour-placeholder.jpg' %}" alt="{% trans 'Placeholder Image' %}" class="w-full h-56 object-cover transform group-hover:scale-105 transition-transform duration-500">
+        {% endif %}
+        
+        {# Optional badge for special offers #}
+        {% if tour.has_discount %}
+            <span class="absolute top-2 {{ LANGUAGE_BIDI|yesno:'left-2,right-2' }} bg-red-500 text-white px-2 py-1 rounded-md text-xs font-bold">
+                {% trans "Special Offer" %}
+            </span>
+        {% endif %}
+    </a>
+    
+    <div class="p-4 flex flex-col flex-grow">
+        {# Categories with better styling #}
+        <div class="text-xs text-gray-600 mb-2 flex flex-wrap {{ LANGUAGE_BIDI|yesno:'justify-end,justify-start' }}">
+            {% for category in tour.categories.all|slice:":3" %}
+                <a href="{% url 'tour:tour_list' %}?category={{ category.slug }}" 
+                   class="bg-gray-100 hover:bg-blue-100 px-2 py-1 rounded mb-1 {{ LANGUAGE_BIDI|yesno:'ml-1,mr-1' }} hover:text-blue-700 transition-colors duration-200">
+                    {{ category.name }}
+                </a>
+            {% endfor %}
+        </div>
+        
+        <h3 class="text-lg font-semibold mb-2">
+            <a href="{{ tour.get_absolute_url }}" class="hover:text-blue-600 transition-colors duration-200">{{ tour.name }}</a>
+        </h3>
+        
+        <p class="text-sm text-gray-700 mb-3 flex-grow">{{ tour.short_description|truncatechars:120 }}</p>
+        
+        <div class="flex {{ LANGUAGE_BIDI|yesno:'flex-row-reverse,flex-row' }} justify-between items-center text-sm mb-3">
+            <div class="flex items-center text-gray-600">
+                <i class="far fa-clock {{ LANGUAGE_BIDI|yesno:'ml-1,mr-1' }}"></i>
+                {% blocktrans with days=tour.duration_days nights=tour.duration_nights %}{{ days }} Days / {{ nights }} Nights{% endblocktrans %}
+            </div>
+            
+            {# Display tour rating if available #}
+            {% if tour.average_rating %}
+            <div class="flex items-center text-yellow-500">
+                <i class="fas fa-star {{ LANGUAGE_BIDI|yesno:'ml-1,mr-1' }}"></i>
+                <span>{{ tour.average_rating|floatformat:1 }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        {# Location info if available #}
+        {% if tour.location %}
+        <div class="flex {{ LANGUAGE_BIDI|yesno:'flex-row-reverse,flex-row' }} items-center text-sm text-gray-600 mb-3">
+            <i class="fas fa-map-marker-alt {{ LANGUAGE_BIDI|yesno:'ml-1,mr-1' }}"></i>
+            <span>{{ tour.location }}</span>
+        </div>
+        {% endif %}
+
+        <div class="flex {{ LANGUAGE_BIDI|yesno:'flex-row-reverse,flex-row' }} justify-between items-center mt-auto pt-2 border-t border-gray-100">
+            <div class="flex flex-col {{ LANGUAGE_BIDI|yesno:'items-end,items-start' }}">
+                {% if tour.has_discount %}
+                    {# Use the convert_currency tag #}
+                    <span class="text-sm text-gray-500 line-through">{% convert_currency tour.price tour.currency.code %}</span>
+                    <span class="text-lg font-bold text-blue-600">{% convert_currency tour.discount_price tour.currency.code %}</span>
+                {% else %}
+                    {# Use the convert_currency tag #}
+                    <span class="text-lg font-bold text-blue-600">{% convert_currency tour.price tour.currency.code %}</span>
+                    <span class="text-xs text-gray-500">{% trans "per person" %}</span>
+                {% endif %}
+            </div>
+            
+            <a href="{{ tour.get_absolute_url }}" 
+               class="inline-flex items-center px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors duration-200 text-sm font-medium">
+                {% trans "View Details" %}
+                <i class="fas fa-chevron-{{ LANGUAGE_BIDI|yesno:'left,right' }} {{ LANGUAGE_BIDI|yesno:'mr-1,ml-1' }}"></i>
+            </a>
+        </div>
+    </div>
+</div>

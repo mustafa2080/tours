@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block title %}{% trans "Social Sign In" %} - {% trans "Tourism Project" %}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-md w-full bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl">
+    <div class="p-8">
+      <div class="text-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-800">
+          {% trans "Sign in with" %} {{ provider.name }}
+        </h1>
+        <p class="text-gray-600 mt-2">
+          {% blocktrans with provider_name=provider.name site_name=site.name %}
+          You're about to sign in using your {{ provider_name }} account.
+          {% endblocktrans %}
+        </p>
+      </div>
+
+      {% if form.errors or error %}
+        <div class="mb-4 p-4 rounded-md bg-red-50 border border-red-200">
+          <p class="text-sm text-red-600 font-medium mb-1">{% trans "Authentication Error" %}</p>
+          <p class="text-sm text-red-600">
+            {% if error %}
+              {{ error }}
+            {% else %}
+              {% for error in form.non_field_errors %}
+                {{ error }}
+              {% endfor %}
+            {% endif %}
+          </p>
+          {% if error and error == "The OAuth client was not found." %}
+            <p class="text-xs text-gray-600 mt-2">
+              {% trans "This error typically occurs when the OAuth client is not properly configured. Please make sure you have:" %}
+              <ul class="list-disc pl-5 mt-1">
+                <li>{% trans "Registered your application with the provider" %}</li>
+                <li>{% trans "Added the social application in Django admin" %}</li>
+                <li>{% trans "Configured the correct client ID and secret" %}</li>
+              </ul>
+            </p>
+          {% endif %}
+        </div>
+      {% endif %}
+
+      <form method="post">
+        {% csrf_token %}
+        
+        <div class="mt-6">
+          {% if provider.id == "google" %}
+            <button type="submit" class="w-full flex justify-center items-center py-3 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
+              <img src="{% static 'images/google-logo.png' %}" alt="Google" class="h-5 w-5 mr-2" onerror="this.src='https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg'; this.onerror=null;">
+              {% trans "Continue with Google" %}
+            </button>
+          {% elif provider.id == "facebook" %}
+            <button type="submit" class="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
+              <i class="fab fa-facebook-f mr-2"></i>
+              {% trans "Continue with Facebook" %}
+            </button>
+          {% elif provider.id == "twitter" %}
+            <button type="submit" class="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-400 hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-300 transition-colors duration-200">
+              <i class="fab fa-twitter mr-2"></i>
+              {% trans "Continue with Twitter" %}
+            </button>
+          {% else %}
+            <button type="submit" class="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
+              <i class="fas fa-external-link-alt mr-2"></i>
+              {% trans "Continue with" %} {{ provider.name }}
+            </button>
+          {% endif %}
+        </div>
+      </form>
+
+      <div class="mt-6 text-center">
+        <a href="{% url 'account_login' %}" class="text-sm font-medium text-blue-600 hover:text-blue-500 transition-colors duration-200">
+          <i class="fas fa-arrow-left mr-1"></i>
+          {% trans "Back to login" %}
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

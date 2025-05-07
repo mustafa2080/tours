@@ -1,0 +1,420 @@
+{% extends "base.html" %}
+{% load static i18n %}
+{% load currency_filters %}
+
+{% block title %}{% trans "My Wishlist" %} | {% trans "Tourism Co." %}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .tour-card {
+        transition: all 0.4s ease;
+    }
+    .tour-card:hover {
+        transform: translateY(-10px);
+    }
+    .heart-beat {
+        animation: heartBeat 1.5s ease-in-out infinite;
+    }
+    @keyframes heartBeat {
+        0% { transform: scale(1); }
+        14% { transform: scale(1.2); }
+        28% { transform: scale(1); }
+        42% { transform: scale(1.2); }
+        70% { transform: scale(1); }
+    }
+    .fade-in {
+        animation: fadeIn 0.8s ease-in-out;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .slide-in {
+        animation: slideIn 0.6s ease-out;
+    }
+    @keyframes slideIn {
+        from { transform: translateX(-30px); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    .pulse {
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); }
+        70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section with Parallax Effect -->
+<div class="relative h-80 bg-gradient-to-r from-blue-600 to-blue-800 overflow-hidden mb-12">
+    <div class="absolute inset-0 bg-cover bg-center" style="background-image: url('{% static 'images/wishlist-bg.jpg' %}'); opacity: 0.3;"></div>
+    <div class="absolute inset-0 bg-gradient-to-b from-transparent to-blue-900/70"></div>
+
+    <div class="relative h-full flex flex-col justify-center items-center text-center px-4 sm:px-6">
+        <h1 class="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-4 slide-in">
+            {% trans "My Wishlist" %}
+        </h1>
+        <p class="text-lg text-blue-100 max-w-3xl mx-auto fade-in" style="animation-delay: 0.3s;">
+            {% trans "Your collection of dream destinations and experiences" %}
+        </p>
+
+        <div class="mt-8 flex items-center space-x-2 fade-in" style="animation-delay: 0.6s;">
+            <i class="fas fa-heart text-red-500 text-2xl heart-beat"></i>
+            <span class="text-white">{{ wishlist_items|length }} {% trans "tours saved" %}</span>
+        </div>
+    </div>
+</div>
+
+<div class="container mx-auto px-4 sm:px-6 lg:px-8 mb-16">
+    {% if wishlist_items %}
+        <!-- Filter and Sort Controls -->
+        <div class="bg-white rounded-xl shadow-md p-4 mb-8 fade-in" style="animation-delay: 0.8s;">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center">
+                    <span class="text-gray-700 font-medium mr-3">{% trans "Sort by:" %}</span>
+                    <select id="sort-wishlist" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5">
+                        <option value="date-desc">{% trans "Date Added (Newest)" %}</option>
+                        <option value="date-asc">{% trans "Date Added (Oldest)" %}</option>
+                        <option value="price-asc">{% trans "Price (Low to High)" %}</option>
+                        <option value="price-desc">{% trans "Price (High to Low)" %}</option>
+                        <option value="rating-desc">{% trans "Rating (Highest)" %}</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                    <button id="view-grid" class="p-2 bg-blue-600 text-white rounded-lg">
+                        <i class="fas fa-th-large"></i>
+                    </button>
+                    <button id="view-list" class="p-2 bg-gray-200 text-gray-700 rounded-lg">
+                        <i class="fas fa-list"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Wishlist Grid View (Default) -->
+        <div id="grid-view" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {% for item in wishlist_items %}
+                <div class="tour-card bg-white rounded-xl shadow-md overflow-hidden fade-in" style="animation-delay: {{ forloop.counter|add:'8'|divisibleby:'10' }}s;">
+                    <div class="relative">
+                        <a href="{% url 'tour:tour_detail' item.tour.slug %}">
+                            <img src="{% if item.tour.cover_image %}{{ item.tour.cover_image.url }}{% else %}{% static 'images/tour-placeholder.jpg' %}{% endif %}"
+                                 alt="{{ item.tour.name }}"
+                                 class="w-full h-56 object-cover transition-transform duration-700 hover:scale-110">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent"></div>
+
+                            {% if item.tour.discount_percentage > 0 %}
+                            <div class="absolute top-3 left-3 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+                                {{ item.tour.discount_percentage }}% {% trans "OFF" %}
+                            </div>
+                            {% endif %}
+
+                            <div class="absolute bottom-0 left-0 right-0 p-4">
+                                <div class="flex items-center text-white text-sm mb-1">
+                                    <i class="fas fa-map-marker-alt text-yellow-400 mr-1"></i>
+                                    <span>{{ item.tour.destination.name }}</span>
+                                </div>
+                                <h3 class="text-white font-bold text-xl">{{ item.tour.name }}</h3>
+                            </div>
+                        </a>
+
+                        <button data-tour-id="{{ item.tour.id }}" class="remove-from-wishlist absolute top-3 right-3 bg-white p-2 rounded-full shadow-md hover:bg-red-50 transition-colors duration-300">
+                            <i class="fas fa-heart text-red-500"></i>
+                        </button>
+                    </div>
+
+                    <div class="p-4">
+                        <div class="flex justify-between items-center mb-3">
+                            <div class="flex items-center">
+                                <div class="flex">
+                                    {% for i in "12345" %}
+                                        {% if forloop.counter <= item.tour.get_average_rating|floatformat:"0"|add:"0" %}
+                                            <i class="fas fa-star text-yellow-400"></i>
+                                        {% elif forloop.counter <= item.tour.get_average_rating|floatformat:"1"|add:"0.5" %}
+                                            <i class="fas fa-star-half-alt text-yellow-400"></i>
+                                        {% else %}
+                                            <i class="far fa-star text-yellow-400"></i>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                                <span class="text-gray-700 ml-1">{{ item.tour.get_average_rating|floatformat:1 }}</span>
+                                <span class="text-gray-500 text-sm ml-1">({{ item.tour.tour_reviews.count }})</span>
+                            </div>
+
+                            <div class="text-right">
+                                {% if item.tour.discount_price %}
+                                <span class="text-gray-500 line-through text-sm">{% convert_currency item.tour.price item.tour.currency.code %}</span>
+                                <div class="text-blue-600 font-bold">
+                                    {% convert_currency item.tour.discount_price item.tour.currency.code %}
+                                </div>
+                                {% else %}
+                                <div class="text-blue-600 font-bold">
+                                     {% convert_currency item.tour.price item.tour.currency.code %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap gap-2 mb-4">
+                            <div class="flex items-center text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded-md">
+                                <i class="fas fa-clock text-blue-500 mr-1"></i>
+                                <span>{{ item.tour.duration_days }} {% trans "days" %}</span>
+                            </div>
+
+
+
+                            {% if item.tour.group_size %}
+                            <div class="flex items-center text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded-md">
+                                <i class="fas fa-users text-blue-500 mr-1"></i>
+                                <span>{% trans "Max" %} {{ item.tour.group_size }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-500 text-sm">
+                                {% trans "Added" %}: {{ item.added_at|date:"M d, Y" }}
+                            </span>
+
+                            <div class="flex space-x-2">
+                                <a href="{% url 'tour:tour_detail' item.tour.slug %}" class="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-300 text-sm">
+                                    {% trans "View Details" %}
+                                </a>
+                                <a href="{% url 'booking:booking_create' item.tour.id %}" class="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-300 text-sm">
+                                    {% trans "Book Now" %}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Wishlist List View (Hidden by default) -->
+        <div id="list-view" class="hidden space-y-6">
+            {% for item in wishlist_items %}
+                <div class="tour-card bg-white rounded-xl shadow-md overflow-hidden fade-in" style="animation-delay: {{ forloop.counter|add:'8'|divisibleby:'10' }}s;">
+                    <div class="flex flex-col md:flex-row">
+                        <div class="relative md:w-1/3">
+                            <a href="{% url 'tour:tour_detail' item.tour.slug %}">
+                                <img src="{% if item.tour.cover_image %}{{ item.tour.cover_image.url }}{% else %}{% static 'images/tour-placeholder.jpg' %}{% endif %}"
+                                     alt="{{ item.tour.name }}"
+                                     class="w-full h-56 md:h-full object-cover transition-transform duration-700 hover:scale-110">
+                                <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent md:bg-gradient-to-r"></div>
+
+                                {% if item.tour.discount_percentage > 0 %}
+                                <div class="absolute top-3 left-3 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+                                    {{ item.tour.discount_percentage }}% {% trans "OFF" %}
+                                </div>
+                                {% endif %}
+                            </a>
+
+                            <button data-tour-id="{{ item.tour.id }}" class="remove-from-wishlist absolute top-3 right-3 bg-white p-2 rounded-full shadow-md hover:bg-red-50 transition-colors duration-300">
+                                <i class="fas fa-heart text-red-500"></i>
+                            </button>
+                        </div>
+
+                        <div class="p-6 md:w-2/3">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <h3 class="text-xl font-bold text-gray-800 hover:text-blue-600 transition-colors duration-300">
+                                        <a href="{% url 'tour:tour_detail' item.tour.slug %}">{{ item.tour.name }}</a>
+                                    </h3>
+                                    <div class="flex items-center text-gray-600 text-sm">
+                                        <i class="fas fa-map-marker-alt text-blue-500 mr-1"></i>
+                                        <span>{{ item.tour.destination.name }}</span>
+                                    </div>
+                                </div>
+
+                                <div class="text-right">
+                                    {% if item.tour.discount_price %}
+                                    <span class="text-gray-500 line-through text-sm">{% convert_currency item.tour.price item.tour.currency.code %}</span>
+                                    <div class="text-blue-600 font-bold text-xl">
+                                        {% convert_currency item.tour.discount_price item.tour.currency.code %}
+                                    </div>
+                                    {% else %}
+                                    <div class="text-blue-600 font-bold text-xl">
+                                        {% convert_currency item.tour.price item.tour.currency.code %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="flex items-center mb-4">
+                                <div class="flex mr-1">
+                                    {% for i in "12345" %}
+                                        {% if forloop.counter <= item.tour.get_average_rating|floatformat:"0"|add:"0" %}
+                                            <i class="fas fa-star text-yellow-400"></i>
+                                        {% elif forloop.counter <= item.tour.get_average_rating|floatformat:"1"|add:"0.5" %}
+                                            <i class="fas fa-star-half-alt text-yellow-400"></i>
+                                        {% else %}
+                                            <i class="far fa-star text-yellow-400"></i>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                                <span class="text-gray-700">{{ item.tour.get_average_rating|floatformat:1 }}</span>
+                                <span class="text-gray-500 text-sm ml-1">({{ item.tour.tour_reviews.count }})</span>
+                            </div>
+
+                            <p class="text-gray-600 mb-4 line-clamp-2">{{ item.tour.description|truncatewords:30 }}</p>
+
+                            <div class="flex flex-wrap gap-2 mb-4">
+                                <div class="flex items-center text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded-md">
+                                    <i class="fas fa-clock text-blue-500 mr-1"></i>
+                                    <span>{{ item.tour.duration_days }} {% trans "days" %}</span>
+                                </div>
+
+
+
+                                {% if item.tour.group_size %}
+                                <div class="flex items-center text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded-md">
+                                    <i class="fas fa-users text-blue-500 mr-1"></i>
+                                    <span>{% trans "Max" %} {{ item.tour.group_size }}</span>
+                                </div>
+                                {% endif %}
+
+                                <div class="flex items-center text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded-md">
+                                    <i class="fas fa-calendar-alt text-blue-500 mr-1"></i>
+                                    <span>{% trans "Added" %}: {{ item.added_at|date:"M d, Y" }}</span>
+                                </div>
+                            </div>
+
+                            <div class="flex justify-end space-x-3">
+                                <a href="{% url 'tour:tour_detail' item.tour.slug %}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-300 text-sm">
+                                    {% trans "View Details" %}
+                                </a>
+                                <a href="{% url 'booking:booking_create' item.tour.id %}" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-300 text-sm pulse">
+                                    {% trans "Book Now" %}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <!-- Empty Wishlist State -->
+        <div class="text-center py-16 bg-white rounded-xl shadow-md fade-in">
+            <div class="mb-6">
+                <i class="far fa-heart text-gray-300 text-8xl mb-4"></i>
+                <h2 class="text-3xl font-bold text-gray-700 mb-2">{% trans "Your wishlist is empty" %}</h2>
+                <p class="text-gray-500 mb-8 max-w-md mx-auto">{% trans "Start exploring tours and save your favorites for later. Your dream destinations are just a click away!" %}</p>
+            </div>
+
+            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                <a href="{% url 'tour:tour_list' %}" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 transform hover:scale-105">
+                    <i class="fas fa-search mr-2"></i> {% trans "Explore Tours" %}
+                </a>
+                <a href="{% url 'tour:featured_tours' %}" class="inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 transform hover:scale-105">
+                    <i class="fas fa-star mr-2"></i> {% trans "Featured Tours" %}
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // View switching functionality
+        const gridView = document.getElementById('grid-view');
+        const listView = document.getElementById('list-view');
+        const gridButton = document.getElementById('view-grid');
+        const listButton = document.getElementById('view-list');
+
+        gridButton.addEventListener('click', function() {
+            gridView.classList.remove('hidden');
+            listView.classList.add('hidden');
+            gridButton.classList.remove('bg-gray-200', 'text-gray-700');
+            gridButton.classList.add('bg-blue-600', 'text-white');
+            listButton.classList.remove('bg-blue-600', 'text-white');
+            listButton.classList.add('bg-gray-200', 'text-gray-700');
+        });
+
+        listButton.addEventListener('click', function() {
+            gridView.classList.add('hidden');
+            listView.classList.remove('hidden');
+            listButton.classList.remove('bg-gray-200', 'text-gray-700');
+            listButton.classList.add('bg-blue-600', 'text-white');
+            gridButton.classList.remove('bg-blue-600', 'text-white');
+            gridButton.classList.add('bg-gray-200', 'text-gray-700');
+        });
+
+        // Sorting functionality
+        const sortSelect = document.getElementById('sort-wishlist');
+        sortSelect.addEventListener('change', function() {
+            // This would typically trigger an AJAX request to sort the items
+            // For now, we'll just show a notification
+            const sortValue = this.value;
+            const notification = document.createElement('div');
+            notification.className = 'fixed bottom-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 fade-in';
+            notification.textContent = `Sorting by: ${sortValue.replace('-', ' ').replace('asc', 'ascending').replace('desc', 'descending')}`;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 500);
+            }, 3000);
+        });
+
+        // Remove from wishlist functionality
+        const removeButtons = document.querySelectorAll('.remove-from-wishlist');
+        removeButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const tourId = this.getAttribute('data-tour-id');
+                const card = this.closest('.tour-card');
+
+                // Add removal animation
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.8)';
+
+                // Send AJAX request to remove from wishlist
+                fetch(`/users/wishlist/toggle/${tourId}/`, {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        setTimeout(() => {
+                            card.remove();
+
+                            // Check if wishlist is now empty
+                            const remainingCards = document.querySelectorAll('.tour-card');
+                            if (remainingCards.length === 0) {
+                                location.reload(); // Reload to show empty state
+                            }
+
+                            // Update counter
+                            const counter = document.querySelector('.heart-beat + span');
+                            if (counter) {
+                                const count = parseInt(counter.textContent.split(' ')[0]) - 1;
+                                counter.textContent = `${count} ${count === 1 ? '{% trans "tour saved" %}' : '{% trans "tours saved" %}'}`;
+                            }
+                        }, 500);
+                    }
+                });
+            });
+        });
+
+        // Add hover effects to tour cards
+        const tourCards = document.querySelectorAll('.tour-card');
+        tourCards.forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.classList.add('shadow-xl');
+            });
+
+            card.addEventListener('mouseleave', function() {
+                this.classList.remove('shadow-xl');
+            });
+        });
+    });
+</script>
+{% endblock %}

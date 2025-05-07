@@ -1,0 +1,165 @@
+{% extends 'analytics/base.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block analytics_title %}{% trans "Revenue Analytics" %}{% endblock %}
+
+{% block analytics_content %}
+<!-- Monthly Revenue Chart -->
+<div class="analytics-card mb-8">
+    <div class="analytics-card-header">
+        <span>{% trans "Monthly Revenue Trend" %}</span>
+    </div>
+    <div class="h-80">
+        <canvas id="monthlyRevenueChart"></canvas>
+    </div>
+</div>
+
+<!-- Revenue Breakdown -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    <!-- Revenue by Payment Method -->
+    <div class="analytics-card">
+        <div class="analytics-card-header">
+            <span>{% trans "Revenue by Payment Method" %}</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {% trans "Method" %}
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {% trans "Revenue" %}
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for item in revenue_by_method %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">
+                                {% if item.payment_method == 'paypal' %}
+                                <i class="fab fa-paypal mr-1 text-blue-600"></i> PayPal
+                                {% elif item.payment_method == 'stripe' %}
+                                <i class="fab fa-stripe mr-1 text-purple-600"></i> Stripe
+                                {% elif item.payment_method == 'credit_card' %}
+                                <i class="fas fa-credit-card mr-1 text-gray-600"></i> {% trans "Credit Card" %}
+                                {% else %}
+                                <i class="fas fa-money-bill-wave mr-1 text-green-600"></i> {{ item.payment_method|title }}
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">{{ item.total|floatformat:2 }} USD</div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="2" class="px-6 py-4 text-center text-sm text-gray-500">
+                            {% trans "No data available" %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Revenue by Tour -->
+    <div class="analytics-card">
+        <div class="analytics-card-header">
+            <span>{% trans "Revenue by Tour" %}</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {% trans "Tour" %}
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {% trans "Revenue" %}
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for item in revenue_by_tour %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">{{ item.booking__tour__name }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">{{ item.total|floatformat:2 }} USD</div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="2" class="px-6 py-4 text-center text-sm text-gray-500">
+                            {% trans "No data available" %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Revenue by Destination -->
+    <div class="analytics-card">
+        <div class="analytics-card-header">
+            <span>{% trans "Revenue by Destination" %}</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {% trans "Destination" %}
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {% trans "Revenue" %}
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for item in revenue_by_destination %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">{{ item.booking__tour__destination__name }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">{{ item.total|floatformat:2 }} USD</div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="2" class="px-6 py-4 text-center text-sm text-gray-500">
+                            {% trans "No data available" %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block analytics_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Monthly Revenue Chart
+        const monthlyData = {{ monthly_chart_data|safe }};
+        createChart('monthlyRevenueChart', 'line', monthlyData.labels, [{
+            label: '{% trans "Monthly Revenue" %}',
+            data: monthlyData.data,
+            backgroundColor: 'rgba(34, 197, 94, 0.2)',
+            borderColor: 'rgba(34, 197, 94, 1)',
+            borderWidth: 2,
+            tension: 0.4,
+            fill: true
+        }]);
+    });
+</script>
+{% endblock %}

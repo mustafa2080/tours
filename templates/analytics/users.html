@@ -1,0 +1,191 @@
+{% extends 'analytics/base.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block analytics_title %}{% trans "User Analytics" %}{% endblock %}
+
+{% block analytics_content %}
+<!-- New Users Chart -->
+<div class="analytics-card mb-8">
+    <div class="analytics-card-header">
+        <span>{% trans "New Users Trend" %}</span>
+    </div>
+    <div class="h-80">
+        <canvas id="newUsersChart"></canvas>
+    </div>
+</div>
+
+<!-- User Performance -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    <!-- Top Customers by Bookings -->
+    <div class="analytics-card">
+        <div class="analytics-card-header">
+            <span>{% trans "Top Customers by Bookings" %}</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {% trans "User" %}
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {% trans "Bookings" %}
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for user in top_customers_by_bookings %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                {% if user.profile_picture %}
+                                <img class="h-8 w-8 rounded-full mr-2" src="{{ user.profile_picture.url }}" alt="{{ user.get_full_name }}">
+                                {% else %}
+                                <div class="h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center mr-2">
+                                    {{ user.username|first|upper }}
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <div class="text-sm font-medium text-gray-900">{{ user.get_full_name|default:user.username }}</div>
+                                    <div class="text-xs text-gray-500">{{ user.email }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">{{ user.booking_count }}</div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="2" class="px-6 py-4 text-center text-sm text-gray-500">
+                            {% trans "No data available" %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Top Customers by Spending -->
+    <div class="analytics-card">
+        <div class="analytics-card-header">
+            <span>{% trans "Top Customers by Spending" %}</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {% trans "User" %}
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {% trans "Spent" %}
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for user in top_customers_by_spending %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                {% if user.profile_picture %}
+                                <img class="h-8 w-8 rounded-full mr-2" src="{{ user.profile_picture.url }}" alt="{{ user.get_full_name }}">
+                                {% else %}
+                                <div class="h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center mr-2">
+                                    {{ user.username|first|upper }}
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <div class="text-sm font-medium text-gray-900">{{ user.get_full_name|default:user.username }}</div>
+                                    <div class="text-xs text-gray-500">{{ user.email }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">{{ user.total_spent|floatformat:2 }} USD</div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="2" class="px-6 py-4 text-center text-sm text-gray-500">
+                            {% trans "No data available" %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Most Active Reviewers -->
+    <div class="analytics-card">
+        <div class="analytics-card-header">
+            <span>{% trans "Most Active Reviewers" %}</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {% trans "User" %}
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {% trans "Reviews" %}
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for user in most_active_reviewers %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                {% if user.profile_picture %}
+                                <img class="h-8 w-8 rounded-full mr-2" src="{{ user.profile_picture.url }}" alt="{{ user.get_full_name }}">
+                                {% else %}
+                                <div class="h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center mr-2">
+                                    {{ user.username|first|upper }}
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <div class="text-sm font-medium text-gray-900">{{ user.get_full_name|default:user.username }}</div>
+                                    <div class="text-xs text-gray-500">{{ user.email }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">{{ user.review_count }}</div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="2" class="px-6 py-4 text-center text-sm text-gray-500">
+                            {% trans "No data available" %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block analytics_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // New Users Chart
+        const newUsersData = {{ new_users_chart_data|safe }};
+        createChart('newUsersChart', 'line', newUsersData.labels, [{
+            label: '{% trans "New Users" %}',
+            data: newUsersData.data,
+            backgroundColor: 'rgba(124, 58, 237, 0.2)',
+            borderColor: 'rgba(124, 58, 237, 1)',
+            borderWidth: 2,
+            tension: 0.4,
+            fill: true
+        }]);
+    });
+</script>
+{% endblock %}

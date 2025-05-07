@@ -1,0 +1,78 @@
+{% extends "users/dashboard_base.html" %}
+{% load i18n %}
+
+{% block dashboard_title %}{% trans "Payment History" %}{% endblock dashboard_title %}
+
+{% block dashboard_content %}
+<h2 class="text-xl font-semibold mb-4">{% trans "Payment History" %}</h2>
+
+{% if payments %}
+    {% with headers=payment_headers rows=payment_rows show_actions=False is_paginated=is_paginated %}
+        {% include 'partials/data_table.html' %}
+    {% endwith %}
+{% else %}
+    <div class="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+        <div class="text-gray-400 mb-3">
+            <i class="fas fa-file-invoice-dollar text-4xl"></i>
+        </div>
+        <h3 class="text-xl font-semibold text-gray-800 mb-2">{% trans "No Payment History" %}</h3>
+        <p class="text-gray-600 mb-6">{% trans "You haven't made any payments yet. Your payment history will appear here once you complete a booking." %}</p>
+        <a href="{% url 'tour:tour_list' %}" class="inline-flex items-center px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 transform transition-transform duration-200 hover:scale-105">
+            <i class="fas fa-search mr-2"></i> {% trans "Explore Tours" %}
+        </a>
+    </div>
+{% endif %}
+
+{% endblock dashboard_content %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Prepare data for the data_table.html template
+        window.payment_headers = [
+            "{% trans 'Date' %}",
+            "{% trans 'Booking ID' %}",
+            "{% trans 'Amount' %}",
+            "{% trans 'Method' %}",
+            "{% trans 'Status' %}",
+            "{% trans 'Transaction ID' %}"
+        ];
+
+        window.payment_rows = [];
+
+        {% for payment in payments %}
+        window.payment_rows.push({
+            cells: [
+                {
+                    value: "{{ payment.created_at|date:'d M Y, H:i' }}",
+                    type: "text"
+                },
+                {
+                    type: "link",
+                    value: "#{{ payment.booking.id }}",
+                    url: "{% url 'booking:booking_detail' pk=payment.booking.id %}"
+                },
+                {
+                    type: "currency",
+                    value: {{ payment.amount }},
+                    currency: "{{ payment.booking.tour.currency.symbol }}"
+                },
+                {
+                    value: "{{ payment.get_payment_method_display }}",
+                    type: "text"
+                },
+                {
+                    type: "status",
+                    value: "{{ payment.get_status_display }}",
+                    status: "{{ payment.status }}"
+                },
+                {
+                    value: "{{ payment.transaction_id|default:'N/A' }}",
+                    type: "text"
+                }
+            ]
+        });
+        {% endfor %}
+    });
+</script>
+{% endblock extra_js %}

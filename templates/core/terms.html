@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Terms and Conditions" %} - {% trans "Tourism Project" %}{% endblock title %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl md:text-4xl font-bold mb-6 text-center">{% trans "Terms and Conditions" %}</h1>
+
+    <div class="bg-white p-6 rounded-lg shadow-md prose max-w-3xl mx-auto">
+        {% if site_settings and site_settings.terms_conditions %}
+            {{ site_settings.terms_conditions|safe }} {# Assuming content contains HTML/Markdown #}
+        {% else %}
+            <p>{% trans "Please read these terms and conditions carefully..." %}</p>
+            {# Add default content #}
+        {% endif %}
+    </div>
+</div>
+{% endblock content %}

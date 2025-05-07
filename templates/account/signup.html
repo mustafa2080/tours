@@ -1,0 +1,653 @@
+{% extends "base.html" %}
+{% load i18n static %}
+{% load account socialaccount %}
+
+{% block extra_head %}
+<script src="{% static 'js/email-validation.js' %}"></script>
+<script src="{% static 'js/signup-validation.js' %}"></script>
+{% endblock %}
+
+{% block title %}{% trans "Sign Up" %} - {% trans "Tourism Project" %}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .fade-in {
+    animation: fadeIn 0.8s ease-in-out;
+  }
+
+  .slide-up {
+    animation: slideUp 0.6s ease-out;
+  }
+
+  .pulse {
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+
+  .input-group:focus-within label {
+    color: #2563eb;
+    transform: translateY(-1px);
+    transition: all 0.2s ease;
+  }
+
+  .form-field {
+    transition: all 0.3s ease;
+  }
+
+  .form-field:focus-within {
+    transform: translateX(5px);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-5xl w-full flex shadow-2xl rounded-xl overflow-hidden bg-white">
+    <!-- Left side - Signup form -->
+    <div class="w-full md:w-1/2 p-8 md:p-12 fade-in">
+      <div class="text-center mb-8 slide-up">
+        <h1 class="text-3xl font-bold text-gray-800">{% trans "Join Our Community" %}</h1>
+        <p class="text-gray-600 mt-2">{% trans "Create an account to start your journey" %}</p>
+        <p class="text-sm text-blue-600 mt-2">{% trans "Each field will be validated as you type. Please ensure all information is correct before submitting." %}</p>
+      </div>
+
+      {% if form.errors %}
+        <div class="mb-4 p-4 rounded-md bg-red-50 border border-red-200 slide-up" style="animation-delay: 0.1s">
+          <p class="text-sm text-red-600">
+            {% if form.non_field_errors %}
+              {{ form.non_field_errors.0 }}
+            {% else %}
+              {% trans "Please correct the errors below." %}
+            {% endif %}
+          </p>
+        </div>
+      {% endif %}
+
+      <form class="space-y-5 needs-validation" method="POST" action="{% url 'account_signup' %}">
+        {% csrf_token %}
+        <!-- Campo oculto para username -->
+        {{ form.username }}
+
+        <div class="form-field slide-up" style="animation-delay: 0.2s">
+          <div class="input-group">
+            <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1 transition-all duration-200">
+              <i class="far fa-envelope text-gray-400 mr-1"></i>
+              {% trans "Email Address" %}
+            </label>
+            <div class="relative">
+              <input type="email" name="{{ form.email.html_name }}" id="{{ form.email.id_for_label }}"
+                    class="appearance-none block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                    placeholder="{% trans 'Enter your email' %}" required>
+              <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none validation-icon hidden">
+                <i class="fas fa-check-circle text-green-500"></i>
+                <i class="fas fa-times-circle text-red-500"></i>
+              </div>
+            </div>
+            {% if form.email.errors %}
+              <p class="mt-1 text-sm text-red-600">{{ form.email.errors.0 }}</p>
+            {% endif %}
+            <p id="email-feedback" class="mt-1 text-sm validation-feedback"></p>
+          </div>
+        </div>
+
+        <div class="form-field slide-up" style="animation-delay: 0.3s">
+          <div class="input-group">
+            <label for="{{ form.first_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1 transition-all duration-200">
+              <i class="far fa-user text-gray-400 mr-1"></i>
+              {% trans "First Name" %}
+            </label>
+            <div class="relative">
+              <input type="text" name="{{ form.first_name.html_name }}" id="{{ form.first_name.id_for_label }}"
+                    class="appearance-none block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                    placeholder="{% trans 'Enter your first name' %}" required>
+              <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none validation-icon hidden">
+                <i class="fas fa-check-circle text-green-500"></i>
+                <i class="fas fa-times-circle text-red-500"></i>
+              </div>
+            </div>
+            {% if form.first_name.errors %}
+              <p class="mt-1 text-sm text-red-600">{{ form.first_name.errors.0 }}</p>
+            {% endif %}
+            <p id="first_name-feedback" class="mt-1 text-sm validation-feedback"></p>
+          </div>
+        </div>
+
+        <div class="form-field slide-up" style="animation-delay: 0.35s">
+          <div class="input-group">
+            <label for="{{ form.last_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1 transition-all duration-200">
+              <i class="far fa-user text-gray-400 mr-1"></i>
+              {% trans "Last Name" %}
+            </label>
+            <div class="relative">
+              <input type="text" name="{{ form.last_name.html_name }}" id="{{ form.last_name.id_for_label }}"
+                    class="appearance-none block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                    placeholder="{% trans 'Enter your last name' %}" required>
+              <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none validation-icon hidden">
+                <i class="fas fa-check-circle text-green-500"></i>
+                <i class="fas fa-times-circle text-red-500"></i>
+              </div>
+            </div>
+            {% if form.last_name.errors %}
+              <p class="mt-1 text-sm text-red-600">{{ form.last_name.errors.0 }}</p>
+            {% endif %}
+            <p id="last_name-feedback" class="mt-1 text-sm validation-feedback"></p>
+          </div>
+        </div>
+
+        <div class="form-field slide-up" style="animation-delay: 0.4s">
+          <div class="input-group">
+            <label for="{{ form.password1.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1 transition-all duration-200">
+              <i class="fas fa-lock text-gray-400 mr-1"></i>
+              {% trans "Password" %}
+            </label>
+            <div class="relative">
+              <input type="password" name="{{ form.password1.html_name }}" id="{{ form.password1.id_for_label }}"
+                    class="appearance-none block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                    placeholder="{% trans 'Create a password' %}" required>
+              <button type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 toggle-password">
+                <i class="fas fa-eye"></i>
+              </button>
+              <div class="absolute inset-y-0 right-8 pr-3 flex items-center pointer-events-none validation-icon hidden">
+                <i class="fas fa-check-circle text-green-500"></i>
+                <i class="fas fa-times-circle text-red-500"></i>
+              </div>
+            </div>
+            {% if form.password1.errors %}
+              <p class="mt-1 text-sm text-red-600">{{ form.password1.errors.0 }}</p>
+            {% endif %}
+            <div id="password1-feedback" class="mt-1">
+              <p class="text-xs text-gray-500">{% trans "Password must have at least 8 characters with uppercase, lowercase, number, and special character" %}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-field slide-up" style="animation-delay: 0.5s">
+          <div class="input-group">
+            <label for="{{ form.password2.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1 transition-all duration-200">
+              <i class="fas fa-lock text-gray-400 mr-1"></i>
+              {% trans "Confirm Password" %}
+            </label>
+            <div class="relative">
+              <input type="password" name="{{ form.password2.html_name }}" id="{{ form.password2.id_for_label }}"
+                    class="appearance-none block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                    placeholder="{% trans 'Confirm your password' %}" required>
+              <button type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 toggle-password">
+                <i class="fas fa-eye"></i>
+              </button>
+              <div class="absolute inset-y-0 right-8 pr-3 flex items-center pointer-events-none validation-icon hidden">
+                <i class="fas fa-check-circle text-green-500"></i>
+                <i class="fas fa-times-circle text-red-500"></i>
+              </div>
+            </div>
+            {% if form.password2.errors %}
+              <p class="mt-1 text-sm text-red-600">{{ form.password2.errors.0 }}</p>
+            {% endif %}
+            <p id="password2-feedback" class="mt-1 text-sm validation-feedback"></p>
+          </div>
+        </div>
+
+        <div class="form-field slide-up" style="animation-delay: 0.6s">
+          <div class="flex items-center">
+            <input id="terms" name="terms" type="checkbox" required
+                  class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded transition-all duration-300">
+            <label for="terms" class="ml-2 block text-sm text-gray-700">
+              {% trans "I agree to the" %} <a href="{% url 'core:terms' %}" class="text-blue-600 hover:underline">{% trans "Terms of Service" %}</a> {% trans "and" %} <a href="{% url 'core:privacy' %}" class="text-blue-600 hover:underline">{% trans "Privacy Policy" %}</a>
+            </label>
+          </div>
+        </div>
+
+        {% if redirect_field_value %}
+          <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+        {% endif %}
+
+        <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300 transform hover:scale-[1.02] slide-up pulse disabled:opacity-50 disabled:cursor-not-allowed btn btn-primary login-btn" style="animation-delay: 0.7s">
+          <i class="fas fa-user-plus mr-2"></i>
+          {% trans "Create Account" %}
+        </button>
+      </form>
+
+      {% get_providers as socialaccount_providers %}
+      {% if socialaccount_providers %}
+        <div class="mt-6 slide-up" style="animation-delay: 0.8s">
+          <div class="relative">
+            <div class="absolute inset-0 flex items-center">
+              <div class="w-full border-t border-gray-300"></div>
+            </div>
+            <div class="relative flex justify-center text-sm">
+              <span class="px-2 bg-white text-gray-500">{% trans "Or sign up with" %}</span>
+            </div>
+          </div>
+
+          <div class="mt-6 grid grid-cols-{{ socialaccount_providers|length|default:3 }} gap-3">
+            {% for provider in socialaccount_providers %}
+              <a href="{% provider_login_url provider.id process='login' %}"
+                class="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-all duration-300 transform hover:scale-105">
+                {% if provider.name == 'Google' %}
+                  <i class="fab fa-google text-red-500"></i>
+                {% elif provider.name == 'Facebook' %}
+                  <i class="fab fa-facebook-f text-blue-600"></i>
+                {% elif provider.name == 'Twitter' %}
+                  <i class="fab fa-twitter text-blue-400"></i>
+                {% else %}
+                  <i class="fas fa-external-link-alt"></i>
+                {% endif %}
+              </a>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
+      <div class="mt-6 text-center text-sm slide-up" style="animation-delay: 0.9s">
+        <p class="text-gray-600">
+          {% trans "Already have an account?" %}
+          <a href="{% url 'account_login' %}" class="font-medium text-blue-600 hover:text-blue-500 ml-1 transition-colors duration-300">
+            {% trans "Sign in" %}
+          </a>
+        </p>
+      </div>
+    </div>
+
+    <!-- Right side - Image and benefits -->
+    <div class="hidden md:block md:w-1/2 bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-12 relative">
+      <div class="absolute inset-0 bg-cover bg-center opacity-20" style="background-image: url('{% static 'images/signup-bg.jpg' %}');"></div>
+      <div class="relative z-10 fade-in">
+        <h2 class="text-3xl font-bold mb-6">{% trans "Start Your Adventure" %}</h2>
+        <p class="mb-8">{% trans "Join thousands of travelers discovering the world's most beautiful destinations." %}</p>
+
+        <div class="mt-12 space-y-8">
+          <div class="transform transition-all duration-500 hover:translate-x-2">
+            <h3 class="text-xl font-semibold mb-2 flex items-center">
+              <i class="fas fa-map-marked-alt mr-3 text-blue-300"></i>
+              {% trans "Explore Destinations" %}
+            </h3>
+            <p class="text-blue-100 ml-8">{% trans "Access exclusive travel guides and insider tips." %}</p>
+          </div>
+
+          <div class="transform transition-all duration-500 hover:translate-x-2">
+            <h3 class="text-xl font-semibold mb-2 flex items-center">
+              <i class="fas fa-percent mr-3 text-blue-300"></i>
+              {% trans "Member Discounts" %}
+            </h3>
+            <p class="text-blue-100 ml-8">{% trans "Get special rates and early access to promotions." %}</p>
+          </div>
+
+          <div class="transform transition-all duration-500 hover:translate-x-2">
+            <h3 class="text-xl font-semibold mb-2 flex items-center">
+              <i class="fas fa-heart mr-3 text-blue-300"></i>
+              {% trans "Save Favorites" %}
+            </h3>
+            <p class="text-blue-100 ml-8">{% trans "Create your travel wishlist and plan your next trip." %}</p>
+          </div>
+
+          <div class="transform transition-all duration-500 hover:translate-x-2">
+            <h3 class="text-xl font-semibold mb-2 flex items-center">
+              <i class="fas fa-comments mr-3 text-blue-300"></i>
+              {% trans "Community" %}
+            </h3>
+            <p class="text-blue-100 ml-8">{% trans "Connect with fellow travelers and share experiences." %}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Debug: Log all form fields and their IDs
+    console.log('Debugging form fields:');
+    const allInputs = document.querySelectorAll('form input');
+    allInputs.forEach(input => {
+      console.log(`Field: ${input.name}, ID: ${input.id}, Type: ${input.type}`);
+    });
+
+    // Password visibility toggle
+    const toggleButtons = document.querySelectorAll('.toggle-password');
+    toggleButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        const input = this.parentNode.querySelector('input');
+        const icon = this.querySelector('i');
+
+        if (input.type === 'password') {
+          input.type = 'text';
+          icon.classList.remove('fa-eye');
+          icon.classList.add('fa-eye-slash');
+        } else {
+          input.type = 'password';
+          icon.classList.remove('fa-eye-slash');
+          icon.classList.add('fa-eye');
+        }
+      });
+    });
+
+    // Add animation to form fields on focus
+    const formFields = document.querySelectorAll('.form-field');
+    formFields.forEach(field => {
+      const input = field.querySelector('input');
+      if (input) {
+        input.addEventListener('focus', () => {
+          formFields.forEach(f => f.classList.remove('active'));
+          field.classList.add('active');
+        });
+      }
+    });
+
+    // Form validation
+    const emailInput = document.getElementById('id_email');
+    const password1Input = document.getElementById('id_password1');
+    const password2Input = document.getElementById('id_password2');
+    const firstNameInput = document.getElementById('id_first_name');
+    const lastNameInput = document.getElementById('id_last_name');
+
+    console.log('Email input:', emailInput);
+    console.log('Password1 input:', password1Input);
+    console.log('Password2 input:', password2Input);
+    console.log('First name input:', firstNameInput);
+    console.log('Last name input:', lastNameInput);
+
+    if (emailInput) {
+      emailInput.addEventListener('input', function() {
+        validateEmail(this);
+      });
+    }
+
+    if (firstNameInput) {
+      firstNameInput.addEventListener('input', function() {
+        validateName(this, 'first_name');
+      });
+    }
+
+    if (lastNameInput) {
+      lastNameInput.addEventListener('input', function() {
+        validateName(this, 'last_name');
+      });
+    }
+
+    if (password1Input) {
+      password1Input.addEventListener('input', function() {
+        validatePassword(this);
+      });
+    }
+
+    if (password2Input) {
+      password2Input.addEventListener('input', function() {
+        validatePasswordMatch(this);
+      });
+    }
+
+    function validateEmail(input) {
+      const basicEmailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const feedbackElement = document.getElementById('email-feedback');
+      const validationIcon = input.parentNode.querySelector('.validation-icon');
+
+      if (!feedbackElement) {
+        console.error('Email feedback element not found');
+        return;
+      }
+
+      // Show validation icon
+      if (validationIcon) {
+        validationIcon.classList.remove('hidden');
+      }
+
+      // Check if email is valid
+      if (!basicEmailRegex.test(input.value)) {
+        // Invalid email format
+        feedbackElement.textContent = 'Please enter a valid email address';
+        feedbackElement.classList.add('text-red-600');
+        feedbackElement.classList.remove('text-green-600');
+        input.classList.add('border-red-500');
+        input.classList.remove('border-green-500');
+
+        // Update validation icon
+        if (validationIcon) {
+          validationIcon.querySelector('.fa-check-circle').style.display = 'none';
+          validationIcon.querySelector('.fa-times-circle').style.display = 'inline-block';
+        }
+        return false;
+      }
+
+      // Accept all domain extensions
+      const emailParts = input.value.split('@');
+      const domain = emailParts[1];
+
+      // Just check if domain has at least one dot
+      if (!domain.includes('.')) {
+        // Invalid domain format
+        feedbackElement.textContent = 'Email domain must include a dot (example@domain.com)';
+        feedbackElement.classList.add('text-red-600');
+        feedbackElement.classList.remove('text-green-600');
+        input.classList.add('border-red-500');
+        input.classList.remove('border-green-500');
+
+        // Update validation icon
+        if (validationIcon) {
+          validationIcon.querySelector('.fa-check-circle').style.display = 'none';
+          validationIcon.querySelector('.fa-times-circle').style.display = 'inline-block';
+        }
+        return false;
+      }
+
+      // Valid email
+      feedbackElement.textContent = 'Email is valid';
+      feedbackElement.classList.remove('text-red-600');
+      feedbackElement.classList.add('text-green-600');
+      input.classList.remove('border-red-500');
+      input.classList.add('border-green-500');
+
+      // Update validation icon
+      if (validationIcon) {
+        validationIcon.querySelector('.fa-check-circle').style.display = 'inline-block';
+        validationIcon.querySelector('.fa-times-circle').style.display = 'none';
+      }
+
+      return true;
+    }
+
+    function validateName(input, type) {
+      const feedbackElement = document.getElementById(`${type}-feedback`);
+      const validationIcon = input.parentNode.querySelector('.validation-icon');
+
+      if (!feedbackElement) {
+        console.error(`${type} feedback element not found`);
+        return;
+      }
+
+      // Show validation icon
+      if (validationIcon) {
+        validationIcon.classList.remove('hidden');
+      }
+
+      if (input.value.trim() === '') {
+        // Invalid name
+        feedbackElement.textContent = `${type === 'first_name' ? 'First' : 'Last'} name is required`;
+        feedbackElement.classList.add('text-red-600');
+        feedbackElement.classList.remove('text-green-600');
+        input.classList.add('border-red-500');
+        input.classList.remove('border-green-500');
+
+        // Update validation icon
+        if (validationIcon) {
+          validationIcon.querySelector('.fa-check-circle').style.display = 'none';
+          validationIcon.querySelector('.fa-times-circle').style.display = 'inline-block';
+        }
+      } else {
+        // Valid name
+        feedbackElement.textContent = `${type === 'first_name' ? 'First' : 'Last'} name is valid`;
+        feedbackElement.classList.remove('text-red-600');
+        feedbackElement.classList.add('text-green-600');
+        input.classList.remove('border-red-500');
+        input.classList.add('border-green-500');
+
+        // Update validation icon
+        if (validationIcon) {
+          validationIcon.querySelector('.fa-check-circle').style.display = 'inline-block';
+          validationIcon.querySelector('.fa-times-circle').style.display = 'none';
+        }
+      }
+    }
+
+    function validatePassword(input) {
+      const feedbackElement = document.getElementById('password1-feedback');
+      const validationIcon = input.parentNode.querySelector('.validation-icon');
+
+      if (!feedbackElement) {
+        console.error('Password feedback element not found');
+        return;
+      }
+
+      // Show validation icon
+      if (validationIcon) {
+        validationIcon.classList.remove('hidden');
+      }
+
+      const password = input.value;
+      const hasUpperCase = /[A-Z]/.test(password);
+      const hasLowerCase = /[a-z]/.test(password);
+      const hasNumber = /[0-9]/.test(password);
+      const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+      const isLongEnough = password.length >= 8;
+
+      const isValid = hasUpperCase && hasLowerCase && hasNumber && hasSpecialChar && isLongEnough;
+
+      // Create detailed feedback
+      let detailedFeedback = document.createElement('ul');
+      detailedFeedback.className = 'text-xs space-y-1 mt-1 list-disc pl-4';
+
+      // Check minimum length
+      let lengthItem = document.createElement('li');
+      lengthItem.textContent = 'At least 8 characters ' + (isLongEnough ? '✓' : '✗');
+      lengthItem.className = isLongEnough ? 'text-green-600' : 'text-red-600';
+      detailedFeedback.appendChild(lengthItem);
+
+      // Check for uppercase letter
+      let uppercaseItem = document.createElement('li');
+      uppercaseItem.textContent = 'Contains uppercase letter ' + (hasUpperCase ? '✓' : '✗');
+      uppercaseItem.className = hasUpperCase ? 'text-green-600' : 'text-red-600';
+      detailedFeedback.appendChild(uppercaseItem);
+
+      // Check for lowercase letter
+      let lowercaseItem = document.createElement('li');
+      lowercaseItem.textContent = 'Contains lowercase letter ' + (hasLowerCase ? '✓' : '✗');
+      lowercaseItem.className = hasLowerCase ? 'text-green-600' : 'text-red-600';
+      detailedFeedback.appendChild(lowercaseItem);
+
+      // Check for number
+      let numberItem = document.createElement('li');
+      numberItem.textContent = 'Contains number ' + (hasNumber ? '✓' : '✗');
+      numberItem.className = hasNumber ? 'text-green-600' : 'text-red-600';
+      detailedFeedback.appendChild(numberItem);
+
+      // Check for special character
+      let specialCharItem = document.createElement('li');
+      specialCharItem.textContent = 'Contains special character ' + (hasSpecialChar ? '✓' : '✗');
+      specialCharItem.className = hasSpecialChar ? 'text-green-600' : 'text-red-600';
+      detailedFeedback.appendChild(specialCharItem);
+
+      // Clear previous feedback and add new detailed feedback
+      feedbackElement.innerHTML = '';
+      feedbackElement.appendChild(detailedFeedback);
+
+      // Update input styling
+      if (isValid) {
+        input.classList.remove('border-red-500');
+        input.classList.add('border-green-500');
+
+        // Update validation icon
+        if (validationIcon) {
+          validationIcon.querySelector('.fa-check-circle').style.display = 'inline-block';
+          validationIcon.querySelector('.fa-times-circle').style.display = 'none';
+        }
+      } else {
+        input.classList.add('border-red-500');
+        input.classList.remove('border-green-500');
+
+        // Update validation icon
+        if (validationIcon) {
+          validationIcon.querySelector('.fa-check-circle').style.display = 'none';
+          validationIcon.querySelector('.fa-times-circle').style.display = 'inline-block';
+        }
+      }
+
+      // Validate password confirmation if it has a value
+      if (password2Input && password2Input.value) {
+        validatePasswordMatch(password2Input);
+      }
+    }
+
+    function validatePasswordMatch(input) {
+      const password1 = document.getElementById('id_password1').value;
+      const feedbackElement = document.getElementById('password2-feedback');
+      const validationIcon = input.parentNode.querySelector('.validation-icon');
+
+      if (!feedbackElement) {
+        console.error('Password2 feedback element not found');
+        return;
+      }
+
+      // Show validation icon
+      if (validationIcon) {
+        validationIcon.classList.remove('hidden');
+      }
+
+      if (input.value === '') {
+        // Empty confirmation
+        feedbackElement.textContent = 'Please confirm your password';
+        feedbackElement.classList.add('text-red-600');
+        feedbackElement.classList.remove('text-green-600');
+        input.classList.add('border-red-500');
+        input.classList.remove('border-green-500');
+
+        // Update validation icon
+        if (validationIcon) {
+          validationIcon.querySelector('.fa-check-circle').style.display = 'none';
+          validationIcon.querySelector('.fa-times-circle').style.display = 'inline-block';
+        }
+      } else if (input.value !== password1) {
+        // Passwords don't match
+        feedbackElement.textContent = "Passwords don't match";
+        feedbackElement.classList.add('text-red-600');
+        feedbackElement.classList.remove('text-green-600');
+        input.classList.add('border-red-500');
+        input.classList.remove('border-green-500');
+
+        // Update validation icon
+        if (validationIcon) {
+          validationIcon.querySelector('.fa-check-circle').style.display = 'none';
+          validationIcon.querySelector('.fa-times-circle').style.display = 'inline-block';
+        }
+      } else {
+        // Passwords match
+        feedbackElement.textContent = 'Passwords match';
+        feedbackElement.classList.remove('text-red-600');
+        feedbackElement.classList.add('text-green-600');
+        input.classList.remove('border-red-500');
+        input.classList.add('border-green-500');
+
+        // Update validation icon
+        if (validationIcon) {
+          validationIcon.querySelector('.fa-check-circle').style.display = 'inline-block';
+          validationIcon.querySelector('.fa-times-circle').style.display = 'none';
+        }
+      }
+    }
+  });
+</script>
+{% endblock %}

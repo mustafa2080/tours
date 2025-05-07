@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block title %}{% trans "Chat Support" %} - {% trans "Tourism Project" %}{% endblock title %}
+
+{% block extra_head %}
+<style>
+    /* Simple scrollbar styling */
+    .chat-messages::-webkit-scrollbar { width: 6px; }
+    .chat-messages::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px;}
+    .chat-messages::-webkit-scrollbar-thumb { background: #888; border-radius: 10px;}
+    .chat-messages::-webkit-scrollbar-thumb:hover { background: #555; }
+</style>
+{% endblock extra_head %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    <h1 class="text-2xl md:text-3xl font-bold mb-6 text-center">{% trans "Chat Support" %}</h1>
+
+    <div class="bg-white rounded-lg shadow-md overflow-hidden" 
+         x-data="chatBot( '{{ session_id }}', '{% url 'chatbots:send_message' %}', '{% csrf_token %}' )">
+        
+        {# Chat Messages Area #}
+        <div class="p-4 h-96 overflow-y-auto chat-messages space-y-4" x-ref="messages">
+            {# Initial messages loaded from context #}
+            {% for message in recent_messages %}
+                <div :class="{ 'text-right': '{{ message.sender_type }}' === 'user' }">
+                    <div class="inline-block p-3 rounded-lg max-w-xs lg:max-w-md
+                                {% if message.sender_type == 'user' %}bg-blue-500 text-white{% else %}bg-gray-200 text-gray-800{% endif %}">
+                        {{ message.message_text|linebreaksbr }}
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">{{ message.timestamp|timesince }} {% trans "ago" %}</p>
+                </div>
+            {% endfor %}
+            {# Dynamically added messages #}
+            <template x-for="message in messages" :key="message.id">
+                <div :class="{ 'text-right': message.sender === 'user' }">
+                    <div class="inline-block p-3 rounded-lg max-w-xs lg:max-w-md"
+                         :class="{ 'bg-blue-500 text-white': message.sender === 'user', 'bg-gray-200 text-gray-800': message.sender === 'bot' }">
+                        <span x-html="message.text"></span> {# Use x-html if bot response might contain basic HTML #}
+                    </div>
+                     {# Add timestamp if needed #}
+                </div>
+            </template>
+             {# Typing indicator #}
+             <div x-show="loading" class="text-left">
+                 <div class="inline-block p-3 rounded-lg max-w-xs lg:max-w-md bg-gray-200 text-gray-500 italic">
+                     {% trans "Bot is typing..." %}
+                 </div>
+             </div>
+        </div>
+
+        {# Input Area #}
+        <div class="p-4 border-t bg-gray-50">
+            <form @submit.prevent="sendMessage" class="flex items-center space-x-3">
+                <input type="text" x-model="newMessage" 
+                       placeholder="{% trans 'Type your message...' %}" 
+                       class="flex-grow form-input rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                       :disabled="loading">
+                <button type="submit" 
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50"
+                        :disabled="loading || newMessage.trim() === ''">
+                    {% trans "Send" %}
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}
+
+{% block extra_scripts %}
+<script>
+    function chatBot(sessionId, sendUrl, csrfToken) {
+        return {
+            sessionId: sessionId,
+            sendUrl: sendUrl,
+            csrfToken: csrfToken,
+            messages: [], // Store new messages dynamically
+            newMessage: '',
+            loading: false, // To show typing indicator
+            messageIdCounter: 0, // Simple way to give unique keys
+
+            init() {
+                // Scroll to bottom initially
+                this.scrollToBottom(); 
+                // Add listener or check for new messages from server if needed (e.g., push notifications)
+            },
+
+            sendMessage() {
+                if (this.newMessage.trim() === '' || this.loading) return;
+
+                const userMessage = {
+                    id: this.messageIdCounter++,
+                    sender: 'user',
+                    text: this.newMessage.trim()
+                };
+                this.messages.push(userMessage);
+                this.loading = true;
+                const messageToSend = this.newMessage.trim(); // Store before clearing
+                this.newMessage = ''; // Clear input
+                this.scrollToBottom();
+
+                fetch(this.sendUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': this.csrfToken
+                    },
+                    body: JSON.stringify({ 
+                        message: messageToSend,
+                        session_id: this.sessionId 
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.reply) {
+                        const botMessage = {
+                            id: this.messageIdCounter++,
+                            sender: 'bot',
+                            text: data.reply 
+                        };
+                        this.messages.push(botMessage);
+                    } else if (data.error) {
+                         const errorMessage = {
+                            id: this.messageIdCounter++,
+                            sender: 'bot',
+                            text: `Error: ${data.error}` 
+                        };
+                        this.messages.push(errorMessage);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error sending message:', error);
+                     const errorMessage = {
+                        id: this.messageIdCounter++,
+                        sender: 'bot',
+                        text: '{% trans "Sorry, an error occurred. Please try again." %}'
+                    };
+                    this.messages.push(errorMessage);
+                })
+                .finally(() => {
+                    this.loading = false;
+                    this.scrollToBottom();
+                });
+            },
+
+            scrollToBottom() {
+                // Use $nextTick to wait for DOM update
+                this.$nextTick(() => {
+                    const messagesContainer = this.$refs.messages;
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                });
+            }
+        }
+    }
+</script>
+{% endblock extra_scripts %}

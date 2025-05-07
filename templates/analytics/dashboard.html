@@ -1,0 +1,188 @@
+{% extends 'analytics/base.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block analytics_title %}{% trans "Analytics Dashboard" %}{% endblock %}
+
+{% block analytics_content %}
+<!-- Quick Stats -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div class="bg-white rounded-xl shadow-md p-4 sm:p-6 border border-gray-100 h-full">
+        <div class="flex justify-between items-center mb-2">
+            <div class="text-xs sm:text-sm text-gray-500">{% trans "Total Revenue" %}</div>
+            <div class="bg-green-100 p-2 rounded-full">
+                <i class="fas fa-dollar-sign text-green-600"></i>
+            </div>
+        </div>
+        <div class="font-bold text-green-600 text-xl sm:text-2xl lg:text-3xl">{{ total_revenue|floatformat:2 }} USD</div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-md p-4 sm:p-6 border border-gray-100 h-full">
+        <div class="flex justify-between items-center mb-2">
+            <div class="text-xs sm:text-sm text-gray-500">{% trans "Total Bookings" %}</div>
+            <div class="bg-blue-100 p-2 rounded-full">
+                <i class="fas fa-calendar-check text-blue-600"></i>
+            </div>
+        </div>
+        <div class="font-bold text-blue-600 text-xl sm:text-2xl lg:text-3xl">{{ total_bookings }}</div>
+        <div class="text-sm text-gray-500">
+            {% trans "Confirmed" %}: <span class="font-medium">{{ confirmed_bookings }}</span>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-md p-4 sm:p-6 border border-gray-100 h-full">
+        <div class="flex justify-between items-center mb-2">
+            <div class="text-xs sm:text-sm text-gray-500">{% trans "New Users" %}</div>
+            <div class="bg-purple-100 p-2 rounded-full">
+                <i class="fas fa-users text-purple-600"></i>
+            </div>
+        </div>
+        <div class="font-bold text-purple-600 text-xl sm:text-2xl lg:text-3xl">{{ new_users }}</div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-md p-4 sm:p-6 border border-gray-100 h-full">
+        <div class="flex justify-between items-center mb-2">
+            <div class="text-xs sm:text-sm text-gray-500">{% trans "Reviews" %}</div>
+            <div class="bg-yellow-100 p-2 rounded-full">
+                <i class="fas fa-star text-yellow-600"></i>
+            </div>
+        </div>
+        <div class="font-bold text-yellow-600 text-xl sm:text-2xl lg:text-3xl">{{ review_count }}</div>
+        <div class="text-sm text-gray-500">
+            {% trans "Avg Rating" %}: <span class="font-medium">{{ avg_rating|floatformat:1 }}</span>
+        </div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <div class="bg-white rounded-xl shadow-md p-4 sm:p-6 border border-gray-100 h-full">
+        <div class="text-lg sm:text-xl font-semibold text-gray-800 mb-3 sm:mb-4 flex items-center justify-between">
+            <span>{% trans "Revenue Trend" %}</span>
+        </div>
+        <div class="h-60 sm:h-80">
+            <canvas id="revenueChart"></canvas>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-md p-4 sm:p-6 border border-gray-100 h-full">
+        <div class="text-lg sm:text-xl font-semibold text-gray-800 mb-3 sm:mb-4 flex items-center justify-between">
+            <span>{% trans "Booking Trend" %}</span>
+        </div>
+        <div class="h-60 sm:h-80">
+            <canvas id="bookingsChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Popular Tours & Country Stats -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <div class="bg-white rounded-xl shadow-md p-4 sm:p-6 border border-gray-100 h-full">
+        <div class="text-lg sm:text-xl font-semibold text-gray-800 mb-3 sm:mb-4 flex items-center justify-between">
+            <span>{% trans "Popular Tours" %}</span>
+            <a href="{% url 'analytics:tours' %}" class="text-sm text-primary hover:text-primary-dark">
+                {% trans "View All" %}
+            </a>
+        </div>
+        <div class="overflow-x-auto -mx-4 sm:mx-0">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {% trans "Tour" %}
+                        </th>
+                        <th scope="col" class="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {% trans "Bookings" %}
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for tour in popular_tours %}
+                    <tr>
+                        <td class="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap">
+                            <div class="text-xs sm:text-sm font-medium text-gray-900">{{ tour.name }}</div>
+                            <div class="text-xs sm:text-sm text-gray-500">{{ tour.destination.name }}</div>
+                        </td>
+                        <td class="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap">
+                            <div class="text-xs sm:text-sm text-gray-900">{{ tour.booking_count }}</div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="2" class="px-3 sm:px-6 py-2 sm:py-4 text-center text-xs sm:text-sm text-gray-500">
+                            {% trans "No data available" %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-md p-4 sm:p-6 border border-gray-100 h-full">
+        <div class="text-lg sm:text-xl font-semibold text-gray-800 mb-3 sm:mb-4 flex items-center justify-between">
+            <span>{% trans "Visitors by Country" %}</span>
+        </div>
+        <div class="overflow-x-auto -mx-4 sm:mx-0">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {% trans "Country" %}
+                        </th>
+                        <th scope="col" class="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {% trans "Visitors" %}
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for country in country_visits %}
+                    <tr>
+                        <td class="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap">
+                            <div class="text-xs sm:text-sm font-medium text-gray-900">{{ country.country }}</div>
+                        </td>
+                        <td class="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap">
+                            <div class="text-xs sm:text-sm text-gray-900">{{ country.count }}</div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="2" class="px-3 sm:px-6 py-2 sm:py-4 text-center text-xs sm:text-sm text-gray-500">
+                            {% trans "No data available" %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block analytics_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Revenue Chart
+        const revenueData = {{ revenue_chart_data|safe }};
+        createChart('revenueChart', 'line', revenueData.labels, [{
+            label: '{% trans "Revenue" %}',
+            data: revenueData.data,
+            backgroundColor: 'rgba(34, 197, 94, 0.2)',
+            borderColor: 'rgba(34, 197, 94, 1)',
+            borderWidth: 2,
+            tension: 0.4,
+            fill: true
+        }]);
+
+        // Bookings Chart
+        const bookingsData = {{ bookings_chart_data|safe }};
+        createChart('bookingsChart', 'bar', bookingsData.labels, [{
+            label: '{% trans "Bookings" %}',
+            data: bookingsData.data,
+            backgroundColor: 'rgba(59, 130, 246, 0.7)',
+            borderColor: 'rgba(59, 130, 246, 1)',
+            borderWidth: 1
+        }]);
+    });
+</script>
+{% endblock %}

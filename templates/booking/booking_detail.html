@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Booking Details" %} - #{% if booking.booking_reference %}{{ booking.booking_reference }}{% else %}BK-{{ booking.id|stringformat:"06d" }}{% endif %}{% endblock title %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white rounded-xl shadow-md overflow-hidden transform transition-all duration-500 hover:shadow-xl">
+        <div class="p-8">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-3xl font-bold text-primary transform transition-all duration-300 hover:scale-105">
+                    <i class="fas fa-receipt mr-2"></i>{% trans "Booking Details" %}
+                </h1>
+                <span class="px-4 py-2 rounded-full text-sm font-semibold
+                    {% if booking.status == 'confirmed' %}bg-green-100 text-green-800
+                    {% elif booking.status == 'pending' %}bg-yellow-100 text-yellow-800
+                    {% elif booking.status == 'cancelled' %}bg-red-100 text-red-800
+                    {% else %}bg-gray-100 text-gray-800{% endif %}
+                    transform transition-all duration-300 hover:scale-110">
+                    {{ booking.get_status_display }}
+                </span>
+            </div>
+
+            <div class="border-b border-gray-200 mb-6 pb-6">
+                <div class="flex flex-wrap -mx-2">
+                    <div class="w-full md:w-1/2 px-2 mb-4 md:mb-0">
+                        <div class="bg-blue-50 p-4 rounded-lg h-full transform transition-all duration-300 hover:shadow-md">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-3">{% trans "Booking Information" %}</h3>
+                            <ul class="space-y-2">
+                                <li class="flex items-center">
+                                    <i class="fas fa-hashtag text-primary w-6"></i>
+                                    <span class="font-medium mr-2">{% trans "Booking Number:" %}</span>
+                                    <span>{% if booking.booking_reference %}{{ booking.booking_reference }}{% else %}BK-{{ booking.id|stringformat:"06d" }}{% endif %}</span>
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-calendar-alt text-primary w-6"></i>
+                                    <span class="font-medium mr-2">{% trans "Booking Date:" %}</span>
+                                    <span>{{ booking.created_at|date:"F j, Y" }}</span>
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-money-bill-wave text-primary w-6"></i>
+                                    <span class="font-medium mr-2">{% trans "Total Amount:" %}</span>
+                                    <span>{{ booking.total_price|floatformat:2 }} {{ request.session.currency_code|default:"USD" }}</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="w-full md:w-1/2 px-2">
+                        <div class="bg-green-50 p-4 rounded-lg h-full transform transition-all duration-300 hover:shadow-md">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-3">{% trans "Tour Information" %}</h3>
+                            <ul class="space-y-2">
+                                <li class="flex items-center">
+                                    <i class="fas fa-route text-primary w-6"></i>
+                                    <span class="font-medium mr-2">{% trans "Tour:" %}</span>
+                                    <span>{{ booking.tour.name }}</span>
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-calendar-day text-primary w-6"></i>
+                                    <span class="font-medium mr-2">{% trans "Start Date:" %}</span>
+                                    <span>{{ booking.start_date|date:"F j, Y" }}</span>
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-users text-primary w-6"></i>
+                                    <span class="font-medium mr-2">{% trans "Travelers:" %}</span>
+                                    <span>{{ booking.num_adults|default:1 }} {% trans "adults" %}{% if booking.num_children %}, {{ booking.num_children }} {% trans "children" %}{% endif %}</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-6 animate-fade-in-up">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">{% trans "Traveler Details" %}</h3>
+                <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        {% trans "Name" %}
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        {% trans "Email" %}
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        {% trans "Phone" %}
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <tr class="hover:bg-gray-50 transition-colors duration-200">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="flex-shrink-0 h-10 w-10 bg-primary rounded-full flex items-center justify-center text-white">
+                                                {{ booking.user.get_full_name|default:booking.user.username|first|upper }}
+                                            </div>
+                                            <div class="ml-4">
+                                                <div class="text-sm font-medium text-gray-900">{{ booking.user.get_full_name|default:booking.user.username }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">{{ booking.user.email }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">{{ booking.user.profile.phone_number|default:"N/A" }}</div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap gap-4 justify-between mt-8">
+                <a href="{% url 'booking:booking_list' %}" class="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-opacity-50 transform transition-transform duration-200 hover:scale-105">
+                    <i class="fas fa-arrow-left mr-2"></i> {% trans "Back to Bookings" %}
+                </a>
+
+                {% if booking.status == 'pending' or booking.status == 'confirmed' %}
+                <div class="flex gap-3">
+                    <a href="{% url 'booking:booking_update' booking.id %}" class="inline-flex items-center px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 transform transition-transform duration-200 hover:scale-105">
+                        <i class="fas fa-edit mr-2"></i> {% trans "Edit Booking" %}
+                    </a>
+                    {% if booking.status == 'pending' or booking.status == 'confirmed' %}
+                    <button type="button" class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 transform transition-transform duration-200 hover:scale-105"
+                            onclick="showCancelModal()">
+                        <i class="fas fa-times-circle mr-2"></i> {% trans "Cancel Booking" %}
+                    </button>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Booking Modal -->
+<div id="cancel-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden" style="display: none; align-items: center; justify-content: center;">
+    <div class="bg-white rounded-lg max-w-md w-full p-6 transform transition-all duration-300 scale-100">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">{% trans "Cancel Booking" %}</h3>
+        <p class="text-gray-500 mb-4">{% trans "Are you sure you want to cancel this booking? This action cannot be undone." %}</p>
+        <div class="flex justify-end gap-3">
+            <button type="button" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                    onclick="hideCancelModal()">
+                {% trans "No, Keep It" %}
+            </button>
+            <form action="{% url 'booking:booking_cancel' booking.id %}" method="post">
+                {% csrf_token %}
+                <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                    {% trans "Yes, Cancel" %}
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    @keyframes fadeInDown {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    .animate-fade-in-down {
+        animation: fadeInDown 0.5s ease-out;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    .animate-fade-in-up {
+        animation: fadeInUp 0.5s ease-out;
+    }
+</style>
+
+<script>
+    // Wait for DOM to be fully loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get the modal element
+        const modal = document.getElementById('cancel-modal');
+
+        // Function to show the cancel modal
+        window.showCancelModal = function() {
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.style.display = 'flex';
+            }
+        };
+
+        // Function to hide the cancel modal
+        window.hideCancelModal = function() {
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.style.display = 'none';
+            }
+        };
+
+        // Prevent automatic page refresh
+        if (window.history && window.history.pushState) {
+            window.history.pushState('forward', null, window.location.href);
+            window.onpopstate = function() {
+                window.history.pushState('forward', null, window.location.href);
+            };
+        }
+    });
+</script>
+{% endblock content %}

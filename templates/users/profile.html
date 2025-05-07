@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans "My Profile" %} | {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-4xl mx-auto">
+        <!-- Page Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-800">{% trans "My Profile" %}</h1>
+            <p class="text-gray-600 mt-2">{% trans "View and manage your personal information" %}</p>
+        </div>
+
+        <!-- Profile Card -->
+        <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
+            <div class="p-6">
+                <div class="flex flex-col md:flex-row items-start">
+                    <!-- Profile Image -->
+                    <div class="w-full md:w-1/4 flex justify-center mb-6 md:mb-0">
+                        {% if user.profile_image %}
+                            <img src="{{ user.profile_image.url }}" alt="{{ user.get_full_name }}" class="w-32 h-32 rounded-full object-cover border-4 border-primary">
+                        {% else %}
+                            <div class="w-32 h-32 rounded-full bg-primary flex items-center justify-center text-white text-3xl font-bold">
+                                {{ user.first_name|first }}{{ user.last_name|first }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Profile Details -->
+                    <div class="w-full md:w-3/4 md:pl-8">
+                        <h2 class="text-2xl font-bold text-gray-800">{{ user.get_full_name }}</h2>
+                        <p class="text-gray-600 mb-4">{{ user.email }}</p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                            <div>
+                                <h3 class="text-sm font-medium text-gray-500">{% trans "First Name" %}</h3>
+                                <p class="text-gray-800">{{ user.first_name }}</p>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-medium text-gray-500">{% trans "Last Name" %}</h3>
+                                <p class="text-gray-800">{{ user.last_name }}</p>
+                            </div>
+                            {% if user.phone_number %}
+                            <div>
+                                <h3 class="text-sm font-medium text-gray-500">{% trans "Phone Number" %}</h3>
+                                <p class="text-gray-800">{{ user.phone_number }}</p>
+                            </div>
+                            {% endif %}
+                            <div>
+                                <h3 class="text-sm font-medium text-gray-500">{% trans "Member Since" %}</h3>
+                                <p class="text-gray-800">{{ user.date_joined|date:"F j, Y" }}</p>
+                            </div>
+                            {% if user.bio %}
+                            <div class="col-span-2">
+                                <h3 class="text-sm font-medium text-gray-500">{% trans "Bio" %}</h3>
+                                <p class="text-gray-800">{{ user.bio }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="flex flex-wrap gap-3">
+                            <a href="{% url 'users:user_profile_update' %}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                                <i class="fas fa-edit mr-2"></i> {% trans "Edit Profile" %}
+                            </a>
+                            <a href="{% url 'account_change_password' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                                <i class="fas fa-key mr-2"></i> {% trans "Change Password" %}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Activity Summary -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-blue-100 text-blue-500 mr-4">
+                        <i class="fas fa-suitcase text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">{% trans "Bookings" %}</p>
+                        <h3 class="text-xl font-bold text-gray-800">{{ user.booking_set.count }}</h3>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-green-100 text-green-500 mr-4">
+                        <i class="fas fa-star text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">{% trans "Reviews" %}</p>
+                        <h3 class="text-xl font-bold text-gray-800">{{ user.review_set.count }}</h3>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-purple-100 text-purple-500 mr-4">
+                        <i class="fas fa-heart text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">{% trans "Wishlist" %}</p>
+                        <h3 class="text-xl font-bold text-gray-800">{{ user.wishlistitem_set.count }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Links -->
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-medium text-gray-800">{% trans "Quick Links" %}</h3>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <a href="{% url 'users:user_dashboard' %}" class="flex items-center p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                        <div class="p-2 rounded-full bg-blue-100 text-blue-500 mr-3">
+                            <i class="fas fa-tachometer-alt"></i>
+                        </div>
+                        <span class="text-gray-700">{% trans "Dashboard" %}</span>
+                    </a>
+                    
+                    <a href="{% url 'users:user_booking_list' %}" class="flex items-center p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                        <div class="p-2 rounded-full bg-green-100 text-green-500 mr-3">
+                            <i class="fas fa-suitcase"></i>
+                        </div>
+                        <span class="text-gray-700">{% trans "My Bookings" %}</span>
+                    </a>
+                    
+                    <a href="{% url 'users:wishlist' %}" class="flex items-center p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                        <div class="p-2 rounded-full bg-red-100 text-red-500 mr-3">
+                            <i class="fas fa-heart"></i>
+                        </div>
+                        <span class="text-gray-700">{% trans "My Wishlist" %}</span>
+                    </a>
+                    
+                    <a href="{% url 'users:user_review_list' %}" class="flex items-center p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                        <div class="p-2 rounded-full bg-yellow-100 text-yellow-500 mr-3">
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <span class="text-gray-700">{% trans "My Reviews" %}</span>
+                    </a>
+                    
+                    <a href="{% url 'users:user_payment_list' %}" class="flex items-center p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                        <div class="p-2 rounded-full bg-purple-100 text-purple-500 mr-3">
+                            <i class="fas fa-credit-card"></i>
+                        </div>
+                        <span class="text-gray-700">{% trans "Payment History" %}</span>
+                    </a>
+                    
+                    <a href="{% url 'users:user_notification_list' %}" class="flex items-center p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                        <div class="p-2 rounded-full bg-indigo-100 text-indigo-500 mr-3">
+                            <i class="fas fa-bell"></i>
+                        </div>
+                        <span class="text-gray-700">{% trans "Notifications" %}</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

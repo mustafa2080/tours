@@ -1,0 +1,885 @@
+{% load static i18n tour_extras %}<!DOCTYPE html>
+<html lang="{{ request.LANGUAGE_CODE }}" dir="{% if request.LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>{% block title %}{% trans "Tourism Project" %}{% endblock title %}</title>
+
+    {# Tailwind CSS CDN #}
+    <link rel="stylesheet" href="{% static 'css/output.css' %}">
+
+    {# Alpine.js - Moved to head and removed defer #}
+    <script src="{% static 'js/vendor/alpine.min.js' %}"></script>
+
+    {# Chart.js - for review charts - load asynchronously #}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" async></script>
+
+    {# Google Fonts - with preload #}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    {# Font Awesome - with preload #}
+    <link rel="preload" href="{% static 'css/fonts.css' %}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="{% static 'css/fonts.css' %}"></noscript>
+    <link rel="preload" href="{% static 'css/all.min.css' %}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="{% static 'css/all.min.css' %}"></noscript>
+
+    {# Performance optimization script #}
+    <script src="{% static 'js/performance.js' %}"></script>
+
+    {# Button interactions script #}
+    <script src="{% static 'js/button-interactions.js' %}"></script>
+
+    {# User state management script #}
+    <script src="{% static 'js/user-state.js' %}"></script>
+
+
+    {# Link Custom Stylesheet #}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+
+    {# Flatpickr CSS #}
+    <link rel="stylesheet" href="{% static 'css/vendor/flatpickr/flatpickr.min.css' %}">
+
+    {# Loading Spinner CSS #}
+    <link rel="stylesheet" href="{% static 'css/loading.css' %}">
+
+    {# Button States CSS #}
+    <link rel="stylesheet" href="{% static 'css/button-states.css' %}">
+
+
+    {# Additional Styles #}
+    <style>
+        :root {
+            --top-bar-height: 60px; /* Default height, will be updated by JS */
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        main {
+            flex: 1;
+            margin-top: calc(var(--top-bar-height) + 2rem); /* Adjusted to clear sticky elements */
+        }
+
+        .nav-link {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            background-color: #1a56db;
+            bottom: -4px;
+            left: 0;
+            transition: width 0.3s ease;
+        }
+
+        .nav-link:hover:after {
+            width: 100%;
+        }
+
+        .footer-link {
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .footer-link:before {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.1);
+            left: -5px;
+            top: 0;
+            transition: width 0.3s ease;
+            z-index: -1;
+            border-radius: 4px;
+        }
+
+        .footer-link:hover:before {
+            width: calc(100% + 10px);
+        }
+
+        .footer-hover-scale {
+            transition: transform 0.3s ease;
+        }
+
+        .footer-hover-scale:hover {
+            transform: translateY(-3px) scale(1.02);
+        }
+
+        .logo-animation {
+            transition: transform 0.3s ease;
+        }
+
+        .logo-animation:hover {
+            transform: scale(1.05);
+        }
+
+        .footer-gradient {
+            background: linear-gradient(to right, #1a365d, #2d3748);
+        }
+
+        .newsletter-input {
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .newsletter-input:focus {
+            border-color: #1a56db;
+            box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.3);
+        }
+
+        /* Top Bar Styles */
+        .top-bar {
+            background: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 0.75rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 60;
+            transition: all 0.3s ease;
+        }
+
+        .top-bar-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            padding: 0 1.5rem;
+        }
+
+        .top-bar-left {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .top-bar-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .social-icon {
+            color: #4b5563;
+            transition: all 0.3s ease;
+        }
+
+        .social-icon:hover {
+            color: #1a56db;
+            transform: scale(1.1);
+        }
+
+        .flag-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 2px;
+            margin-right: 0.5rem;
+        }
+    </style>
+
+    {# Chatbot styles remain unchanged #}
+    <style>
+        .chat-widget {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            max-width: 100%;
+        }
+
+        .chat-button {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #1a56db;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .chat-button:hover {
+            transform: scale(1.1) rotate(5deg);
+            background: #0c4fc7;
+        }
+
+        .chat-container {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: calc(100% - 40px);
+            max-width: 350px;
+            height: 450px;
+            max-height: 80vh;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 1000;
+            transform-origin: bottom right;
+            transition: all 0.3s ease;
+        }
+
+        .chat-header {
+            background: linear-gradient(to right, #1a56db, #3b82f6);
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-close {
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .chat-close:hover {
+            transform: rotate(90deg);
+        }
+
+        .chat-messages {
+            flex-grow: 1;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .chat-input-area {
+            padding: 15px;
+            border-top: 1px solid #eee;
+            display: flex;
+            background-color: #f9fafb;
+        }
+
+        .chat-input {
+            flex-grow: 1;
+            padding: 12px 16px;
+            border: 1px solid #ddd;
+            border-radius: 24px;
+            margin-right: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .chat-input:focus {
+            border-color: #1a56db;
+            box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.3);
+            outline: none;
+        }
+
+        .chat-send {
+            background: #1a56db;
+            color: white;
+            border: none;
+            border-radius: 24px;
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .chat-send:hover {
+            background: #0c4fc7;
+            transform: translateY(-2px);
+        }
+
+        .chat-messages::-webkit-scrollbar { width: 6px; }
+        .chat-messages::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .chat-messages::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+        .chat-messages::-webkit-scrollbar-thumb:hover { background: #555; }
+
+        [dir="rtl", dir="ltr"] .fa-building, .fa-envelope {
+            margin-right: 0.5rem; /* يمكنك تعديل القيمة حسب الحاجة */
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans leading-normal tracking-normal {% if user.is_authenticated %}user-authenticated{% endif %}" x-data="{ isRtl: {{ LANGUAGE_BIDI|yesno:'true,false' }}, chatOpen: false }" data-user-authenticated="{{ user.is_authenticated|yesno:'true,false' }}">
+    {# Top Bar with Company Info, Social Icons, Language, and Currency #}
+    <div class="top-bar" dir="{{ LANGUAGE_BIDI|yesno:'rtl,ltr' }}">
+        <div class="w-full px-4 sm:px-6">
+            <div class="flex flex-wrap items-center justify-between py-2">
+                {# Left Section - Company Info #}
+                <div class="flex items-center space-x-4 rtl:space-x-reverse">
+                    {# Company Name #}
+                    <div class="flex items-center">
+                        <i class="fas fa-building text-primary mr-2 rtl:ml-2 rtl:mr-0"></i>
+                        <span class="text-sm font-semibold text-gray-700">{% trans "Tourism Co." %}</span>
+                    </div>
+
+                    {# Company Email #}
+                    <div class="flex items-center">
+                        <i class="fas fa-envelope text-primary mr-2 rtl:ml-2 rtl:mr-0"></i>
+                        <a href="mailto:info@tourismco.com" class="text-sm text-gray-600 hover:text-primary transition-all duration-300" data-no-loading>info@tourismco.com</a>
+                    </div>
+
+                    {# Company Phone #}
+                    <div class="flex items-center">
+                        <i class="fas fa-phone-alt text-primary mr-2 rtl:ml-2 rtl:mr-0"></i>
+                        <a href="tel:+12345678900" class="text-sm text-gray-600 hover:text-primary transition-all duration-300" data-no-loading>+201065706165</a>
+                    </div>
+                </div>
+
+                {# Right Section - Social Media, Language, Currency #}
+                <div class="flex items-center space-x-4 rtl:space-x-reverse">
+                    {# Social Media Icons #}
+                    <div class="hidden sm:flex items-center space-x-3 rtl:space-x-reverse border-r border-gray-200 pr-4 rtl:pl-4 rtl:pr-0">
+                        <a href="https://facebook.com/tourismco" target="_blank" class="social-icon" aria-label="Facebook">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="https://instagram.com/tourismco" target="_blank" class="social-icon" aria-label="Instagram">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a href="https://twitter.com/tourismco" target="_blank" class="social-icon" aria-label="Twitter">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="https://pinterest.com/tourismco" target="_blank" class="social-icon" aria-label="Pinterest">
+                            <i class="fab fa-pinterest"></i>
+                        </a>
+                    </div>
+
+                    {# Language Selector with Flags #}
+                    <div class="relative" x-data="{ langOpen: false }">
+                        <button @click="langOpen = !langOpen" type="button"
+                                class="flex items-center justify-between rounded-lg border border-gray-200 shadow-sm px-3 py-1 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-300">
+                            <div class="flex items-center">
+                                {% get_language_info for LANGUAGE_CODE as lang %}
+                                <img src="{% static 'flags/'|add:LANGUAGE_CODE|add:'.jpg' %}" alt="{{ lang.name_local }}" class="flag-icon">
+                                <span class="mx-1">{{ lang.name_local }}</span>
+                            </div>
+                            <svg class="h-4 w-4 ml-1 rtl:mr-1 rtl:ml-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                        <div x-show="langOpen" @click.away="langOpen = false"
+                             x-transition:enter="transition ease-out duration-200"
+                             x-transition:enter-start="opacity-0 scale-95"
+                             x-transition:enter-end="opacity-100 scale-100"
+                             x-transition:leave="transition ease-in duration-150"
+                             x-transition:leave-start="opacity-100 scale-100"
+                             x-transition:leave-end="opacity-0 scale-95"
+                             class="absolute mt-2 w-56 rounded-lg shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-60"
+                             :class="{'left-0': isRtl, 'right-0': !isRtl}">
+                            <div class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                                {% get_available_languages as LANGUAGES %}
+                                {% for code, name in LANGUAGES %}
+                                    <form action="{% url 'set_language' %}" method="post" class="block">
+                                        {% csrf_token %}
+                                        <input name="next" type="hidden" value="{{ request.get_full_path|slice:'3:' }}">
+                                        <input name="language" type="hidden" value="{{ code }}">
+                                        <button type="submit" class="flex items-center w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-primary transition-colors duration-300 {% if code == LANGUAGE_CODE %}font-bold text-primary{% endif %}" role="menuitem">
+                                            <img src="{% static 'flags/'|add:code|add:'.jpg' %}"
+                                                 alt="{{ name }}"
+                                                 class="w-5 h-5 object-contain rounded-sm mr-2 rtl:ml-2 rtl:mr-0 inline-block">
+                                            <span>{{ name }}</span>
+                                        </button>
+                                    </form>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    {# Currency Selector #}
+                    <div class="relative" x-data="{ currencyOpen: false }">
+                        <button @click="currencyOpen = !currencyOpen" type="button"
+                                class="flex items-center justify-between rounded-lg border border-gray-200 shadow-sm px-3 py-1 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-300">
+                            <div class="flex items-center">
+                                <i class="fas fa-dollar-sign w-4 text-center"></i>
+                                <span class="mx-1">{{ request.session.currency_code|default:DEFAULT_CURRENCY_CODE }}</span>
+                            </div>
+                            <svg class="h-4 w-4 ml-1 rtl:mr-1 rtl:ml-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                        <div x-show="currencyOpen" @click.away="currencyOpen = false"
+                             x-transition:enter="transition ease-out duration-200"
+                             x-transition:enter-start="opacity-0 scale-95"
+                             x-transition:enter-end="opacity-100 scale-100"
+                             x-transition:leave="transition ease-in duration-150"
+                             x-transition:leave-start="opacity-100 scale-100"
+                             x-transition:leave-end="opacity-0 scale-95"
+                             class="absolute mt-2 w-40 rounded-lg shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-60"
+                             :class="{'left-0': isRtl, 'right-0': !isRtl}">
+                            <div class="py-1" role="menu" aria-orientation="vertical">
+                                {% for currency in available_currencies %}
+                                    <form action="{% url 'core:set_currency' %}" method="post" class="block">
+                                        {% csrf_token %}
+                                        <input name="next" type="hidden" value="{{ request.get_full_path }}">
+                                        <input name="currency_code" type="hidden" value="{{ currency.code }}">
+                                        <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-primary transition-colors duration-300 {% if currency.code == request.session.currency_code %}font-bold text-primary{% endif %}" role="menuitem">
+                                            {{ currency.name }} ({{ currency.code }})
+                                        </button>
+                                    </form>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Modern Loading Spinner #}
+    {% include 'partials/loading.html' with size=LOADING_SIZE style=LOADING_STYLE fullscreen=True glass=LOADING_GLASS text=_('Loading...') %}
+
+
+
+    {# Navigation Bar #}
+    <nav :class="{ 'shadow-md scale-95': scrolled, 'scale-100': !scrolled }" class="transition-transform duration-300 z-50"
+         x-data="{ open: false, userDropdown: false, scrolled: false }"
+         @scroll.window="scrolled = window.pageYOffset > 20"
+         dir="{{ LANGUAGE_BIDI|yesno:'rtl,ltr' }}"
+         style="top: var(--top-bar-height);">
+        <div class="w-full px-4 sm:px-6"
+             :class="{ 'py-3': scrolled, 'py-4': !scrolled }">
+            <div class="flex items-center justify-between flex-wrap">
+                <div class="flex items-center flex-shrink-0 text-gray-800">
+                    <a href="{% url 'core:home' %}" class="font-bold text-2xl tracking-tight flex items-center logo-animation transition-all duration-300 hover:text-primary">
+                        <span class="text-primary">{% trans "Tourism" %}</span>
+                        <span class="text-gray-700 mx-1">{% trans "Co." %}</span>
+                        <i class="fas fa-mountain text-accent ml-2"></i>
+                    </a>
+                </div>
+
+                <div class="block lg:hidden">
+                    <button @click="open = !open" class="flex items-center px-3 py-2 border rounded text-primary border-primary hover:text-primary-dark hover:border-primary-dark transition-all duration-300">
+                        <svg class="fill-current h-4 w-4" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M0 3h20v2H0V3zm0 6h20v2H0V9zm0 6h20v2H0v-2z"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div :class="{'block': open, 'hidden': !open}"
+                     class="w-full lg:flex lg:items-center lg:w-auto transition-all duration-300 absolute lg:static top-full left-0 bg-white lg:bg-transparent shadow-lg lg:shadow-none z-50 p-4 lg:p-0"
+                     :class="{'right-0': !LANGUAGE_BIDI, 'left-0': LANGUAGE_BIDI}">
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between w-full gap-4 lg:gap-6">
+                        <div class="flex flex-col lg:flex-row lg:items-center gap-2 lg:gap-4">
+                            <a href="{% url 'core:home' %}" class="flex items-center text-gray-700 hover:text-primary nav-link px-3 py-2 rounded-md transition-all duration-300">
+                                <i class="fas fa-home w-5 text-center"></i>
+                                <span class="mx-2">{% trans "Home" %}</span>
+                            </a>
+                            <a href="{% url 'tour:tour_list' %}" class="flex items-center text-gray-700 hover:text-primary nav-link px-3 py-2 rounded-md transition-all duration-300">
+                                <i class="fas fa-route w-5 text-center"></i>
+                                <span class="mx-2">{% trans "Tours" %}</span>
+                            </a>
+                            <a href="{% url 'blog:post_list' %}" class="flex items-center text-gray-700 hover:text-primary nav-link px-3 py-2 rounded-md transition-all duration-300">
+                                <i class="fas fa-blog w-5 text-center"></i>
+                                <span class="mx-2">{% trans "Blog" %}</span>
+                            </a>
+                            <a href="{% url 'core:about' %}" class="flex items-center text-gray-700 hover:text-primary nav-link px-3 py-2 rounded-md transition-all duration-300">
+                                <i class="fas fa-info-circle w-5 text-center"></i>
+                                <span class="mx-2">{% trans "About Us" %}</span>
+                            </a>
+                            <a href="{% url 'core:contact' %}" class="flex items-center text-gray-700 hover:text-primary nav-link px-3 py-2 rounded-md transition-all duration-300">
+                                <i class="fas fa-paper-plane w-5 text-center"></i>
+                                <span class="mx-2">{% trans "Contact" %}</span>
+                            </a>
+                        </div>
+
+                        <div class="relative">
+                            {% if user.is_authenticated %}
+                                <div class="relative" x-data="{ userDropdown: false }" data-auth-only>
+                                    <button @click="userDropdown = !userDropdown" type="button"
+                                            class="flex items-center justify-between w-full lg:w-auto rounded-lg border border-gray-200 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-300">
+                                        <div class="flex items-center">
+                                            {% if user.profile_picture %}
+                                                <img src="{{ user.profile_picture.url }}" alt="{% trans 'User Avatar' %}" class="h-8 w-8 rounded-full object-cover">
+                                            {% else %}
+                                                <div class="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold">
+                                                    {{ user.username|first|upper }}
+                                                </div>
+                                            {% endif %}
+                                            <span class="mx-2 truncate max-w-[150px]">{{ user.get_full_name|default:user.username }}</span>
+                                        </div>
+                                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                    <div x-show="userDropdown" @click.away="userDropdown = false"
+                                         x-transition:enter="transition ease-out duration-200"
+                                         x-transition:enter-start="opacity-0 scale-95"
+                                         x-transition:enter-end="opacity-100 scale-100"
+                                         x-transition:leave="transition ease-in duration-150"
+                                         x-transition:leave-start="opacity-100 scale-100"
+                                         x-transition:leave-end="opacity-0 scale-95"
+                                         class="absolute mt-2 w-56 rounded-lg shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-60"
+                                         :class="{'left-0': isRtl, 'right-0': !isRtl}">
+                                        <div class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="user-menu">
+                                            <div class="px-4 py-3 border-b border-gray-100">
+                                                <p class="text-sm font-semibold text-gray-900 truncate">{{ user.get_full_name|default:user.username }}</p>
+                                                <p class="text-xs text-gray-500 truncate">{{ user.email }}</p>
+                                            </div>
+                                            <a href="{% url 'users:user_dashboard' %}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-primary transition-colors duration-300" role="menuitem">
+                                                <i class="fas fa-tachometer-alt w-5 text-center"></i>
+                                                <span class="mx-2">{% trans "Dashboard" %}</span>
+                                            </a>
+                                            <a href="{% url 'users:user_profile_update' %}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-primary transition-colors duration-300" role="menuitem">
+                                                <i class="fas fa-user w-5 text-center"></i>
+                                                <span class="mx-2">{% trans "Update Profile" %}</span>
+                                            </a>
+                                            <a href="{% url 'booking:booking_list' %}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-primary transition-colors duration-300" role="menuitem">
+                                                <i class="fas fa-calendar-check w-5 text-center"></i>
+                                                <span class="mx-2">{% trans "My Bookings" %}</span>
+                                            </a>
+                                            <a href="{% url 'users:wishlist' %}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-primary transition-colors duration-300" role="menuitem">
+                                                <i class="fas fa-heart w-5 text-center"></i>
+                                                <span class="mx-2">{% trans "My Wishlist" %}</span>
+                                            </a>
+                                            {% if user.is_staff %}
+                                            <a href="{% url 'admin:index' %}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-primary transition-colors duration-300" role="menuitem">
+                                                <i class="fas fa-cog w-5 text-center"></i>
+                                                <span class="mx-2">{% trans "Admin Panel" %}</span>
+                                            </a>
+                                            <a href="{% url 'analytics:dashboard' %}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-primary transition-colors duration-300" role="menuitem">
+                                                <i class="fas fa-chart-line w-5 text-center"></i>
+                                                <span class="mx-2">{% trans "Analytics Dashboard" %}</span>
+                                            </a>
+                                            {% endif %}
+                                            <div class="border-t border-gray-100 mt-1">
+                                                <form action="{% url 'account_logout' %}" method="post" class="block">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-300" role="menuitem" data-logout-btn>
+                                                        <i class="fas fa-sign-out-alt w-5 text-center"></i>
+                                                        <span class="mx-2">{% trans "Logout" %}</span>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="flex flex-col sm:flex-row gap-2 lg:gap-3"
+                                     :class="{'sm:space-x-reverse sm:flex-row-reverse': isRtl}">
+                                    <a href="{% url 'account_login' %}" class="flex items-center justify-center text-sm px-4 py-2 rounded-lg text-primary border border-primary hover:bg-primary hover:text-white transition-all duration-300" data-login-btn>
+                                        <i class="fas fa-sign-in-alt w-5 text-center"></i>
+                                        <span class="mx-2">{% trans "Login" %}</span>
+                                    </a>
+                                    <a href="{% url 'account_signup' %}" class="flex items-center justify-center text-sm px-4 py-2 rounded-lg text-white bg-primary border border-primary hover:bg-primary-dark transition-all duration-300" data-guest-only>
+                                        <i class="fas fa-user-plus w-5 text-center"></i>
+                                        <span class="mx-2">{% trans "Sign Up" %}</span>
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    {# Main Content Area #}
+    <main class="w-full px-4 sm:px-6 mb-12 min-h-screen-without-footer">
+        {% if messages %}
+            <div class="mb-6">
+                {% for message in messages %}
+                    <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)"
+                         class="p-4 rounded-lg mb-3 shadow-md transform transition-all duration-500"
+                         x-transition:enter="transition ease-out duration-300"
+                         x-transition:enter-start="opacity-0 transform -translate-y-2"
+                         x-transition:enter-end="opacity-100 transform translate-y-0"
+                         x-transition:leave="transition ease-in duration-300"
+                         x-transition:leave-start="opacity-100 transform translate-y-0"
+                         x-transition:leave-end="opacity-0 transform -translate-y-2"
+                         class="{% if message.tags == 'success' %}bg-green-100 border-l-4 border-green-500 text-green-700
+                                {% elif message.tags == 'warning' %}bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700
+                                {% elif message.tags == 'error' %}bg-red-100 border-l-4 border-red-500 text-red-700
+                                {% else %}bg-blue-100 border-l-4 border-blue-500 text-blue-700{% endif %}"
+                         role="alert">
+                        <div class="flex items-center">
+                            <div class="py-1 mr-3">
+                                {% if message.tags == 'success' %}
+                                    <i class="fas fa-check-circle text-green-500 text-xl"></i>
+                                {% elif message.tags == 'warning' %}
+                                    <i class="fas fa-exclamation-triangle text-yellow-500 text-xl"></i>
+                                {% elif message.tags == 'error' %}
+                                    <i class="fas fa-times-circle text-red-500 text-xl"></i>
+                                {% else %}
+                                    <i class="fas fa-info-circle text-blue-500 text-xl"></i>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <p class="font-medium">{{ message }}</p>
+                            </div>
+                        </div>
+                        <button @click="show = false" class="absolute top-0 bottom-0 right-0 px-4 py-3 {% if request.LANGUAGE_CODE == 'ar' %}left-0 right-auto{% endif %}">
+                            <svg class="fill-current h-6 w-6
+                                    {% if message.tags == 'success' %}text-green-500
+                                    {% elif message.tags == 'warning' %}text-yellow-500
+                                    {% elif message.tags == 'error' %}text-red-500
+                                    {% else %}text-blue-500{% endif %}"
+                                 role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><title>Close</title><path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.03a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"/></svg>
+                        </button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% block content %}
+        {% endblock content %}
+    </main>
+
+    {# Footer #}
+    <footer class="footer-gradient text-white py-12 sm:py-16">
+        <div class="w-full px-4 sm:px-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
+                <div class="footer-hover-scale">
+                    <h5 class="font-bold text-xl mb-4 border-b border-blue-400 inline-block pb-2">{% trans "About Us" %}</h5>
+                    <div class="flex items-start mb-4">
+                        <div class="mr-3 mt-1">
+                            <i class="fas fa-compass text-2xl text-accent"></i>
+                        </div>
+                        <p class="text-sm text-gray-300 leading-relaxed">{% trans "Your adventure starts here. Discover amazing tours and destinations with our expert guides." %}</p>
+                    </div>
+                    <div class="flex space-x-3 mt-6">
+                        <a href="#" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-primary transition-all duration-300">
+                            <i class="fab fa-facebook-f text-white"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-primary transition-all duration-300">
+                            <i class="fab fa-twitter text-white"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-primary transition-all duration-300">
+                            <i class="fab fa-instagram text-white"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="footer-hover-scale">
+                    <h5 class="font-bold text-xl mb-4 border-b border-blue-400 inline-block pb-2">{% trans "Quick Links" %}</h5>
+                    <ul class="space-y-3">
+                        <li>
+                            <a href="{% url 'core:home' %}" class="text-gray-300 hover:text-white flex items-center footer-link">
+                                <i class="fas fa-chevron-right mr-2 text-accent"></i>
+                                {% trans "Home" %}
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'tour:tour_list' %}" class="text-gray-300 hover:text-white flex items-center footer-link">
+                                <i class="fas fa-chevron-right mr-2 text-accent"></i>
+                                {% trans "Tours" %}
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'blog:post_list' %}" class="text-gray-300 hover:text-white flex items-center footer-link">
+                                <i class="fas fa-chevron-right mr-2 text-accent"></i>
+                                {% trans "Blog" %}
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'core:faq' %}" class="text-gray-300 hover:text-white flex items-center footer-link">
+                                <i class="fas fa-chevron-right mr-2 text-accent"></i>
+                                {% trans "FAQ" %}
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'core:contact' %}" class="text-gray-300 hover:text-white flex items-center footer-link">
+                                <i class="fas fa-chevron-right mr-2 text-accent"></i>
+                                {% trans "Contact" %}
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="footer-hover-scale">
+                    <h5 class="font-bold text-xl mb-4 border-b border-blue-400 inline-block pb-2">{% trans "Legal" %}</h5>
+                    <ul class="space-y-3">
+                        <li>
+                            <a href="{% url 'core:terms' %}" class="text-gray-300 hover:text-white flex items-center footer-link">
+                                <i class="fas fa-chevron-right mr-2 text-accent"></i>
+                                {% trans "Terms & Conditions" %}
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'core:privacy' %}" class="text-gray-300 hover:text-white flex items-center footer-link">
+                                <i class="fas fa-chevron-right mr-2 text-accent"></i>
+                                {% trans "Privacy Policy" %}
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'core:privacy' %}" class="text-gray-300 hover:text-white flex items-center footer-link">
+                                <i class="fas fa-chevron-right mr-2 text-accent"></i>
+                                {% trans "Cookie Policy" %}
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'core:terms' %}" class="text-gray-300 hover:text-white flex items-center footer-link">
+                                <i class="fas fa-chevron-right mr-2 text-accent"></i>
+                                {% trans "Refund Policy" %}
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="footer-hover-scale">
+                    <h5 class="font-bold text-xl mb-4 border-b border-blue-400 inline-block pb-2">{% trans "Contact Us" %}</h5>
+                    <ul class="space-y-4">
+                        <li class="flex items-start">
+                            <i class="fas fa-map-marker-alt mt-1 mr-3 text-accent"></i>
+                            <span class="text-gray-300">45 Corniche El Nile St, Luxor, Egypt</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-phone-alt mr-3 text-accent"></i>
+                            <a href="tel:+201065706165" class="text-gray-300 hover:text-white" data-no-loading>+20 10 65 70 61 65</a>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fas fa-envelope mr-3 text-accent"></i>
+                            <a href="mailto:info@tourismco.com" class="text-gray-300 hover:text-white" data-no-loading>info@tourismco.com</a>
+                        </li>
+                    </ul>
+
+                    <div class="mt-6">
+                        <h6 class="font-semibold mb-2 text-white">{% trans "Subscribe to Newsletter" %}</h6>
+                        <form class="flex">
+                            <input type="email" class="bg-white/10 text-white rounded-l-lg px-4 py-2 w-full focus:outline-none newsletter-input" placeholder="{% trans 'Your email' %}">
+                            <button type="submit" class="bg-accent hover:bg-accent/80 text-white rounded-r-lg px-4 py-2 transition-all duration-300">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-t border-blue-800 mt-8 pt-8 text-center text-gray-300 text-sm">
+                <p>© {% now "Y" %} {% trans "Tourism Co. All rights reserved." %}</p>
+            </div>
+        </div>
+    </footer>
+
+    {# Chatbot Widget #}
+    <div class="chat-widget">
+        <div x-show="chatOpen" x-transition:enter="transition-all duration-300 ease-out" x-transition:enter-start="opacity-0 scale-90" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition-all duration-300 ease-in" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-90" class="chat-container" style="display: none;">
+            <div class="chat-header">
+                <div class="flex items-center">
+                    <i class="fas fa-robot mr-2"></i>
+                    <h3 class="font-bold">{% trans "Tour Assistant" %}</h3>
+                </div>
+                <div class="chat-close" @click="chatOpen = false">
+                    <i class="fas fa-times"></i>
+                </div>
+            </div>
+            <div class="chat-messages" id="chat-messages">
+                <div class="bg-gray-100 p-3 rounded-lg mb-4 max-w-xs">
+                    <p class="text-gray-800">{% trans "Hello! How can I help you with your travel plans today?" %}</p>
+                </div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-input" class="chat-input" placeholder="{% trans 'Type your message...' %}">
+                <button class="chat-send" id="chat-send">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+
+        <div @click="chatOpen = !chatOpen" class="chat-button">
+            <i x-show="!chatOpen" class="fas fa-comments text-2xl"></i>
+            <i x-show="chatOpen" class="fas fa-times text-2xl" style="display: none;"></i>
+        </div>
+    </div>
+
+    {# Loading Spinner JavaScript #}
+    <script>
+        // Configuration for loading spinner
+        window.LOADING_CONFIG = {
+            enabled: {% if LOADING_ENABLED %}true{% else %}false{% endif %},
+            showDelayMs: {{ LOADING_SHOW_DELAY_MS|default:300 }},
+            hideDelayMs: {{ LOADING_HIDE_DELAY_MS|default:300 }},
+            style: '{{ LOADING_STYLE|default:"dots" }}',
+            size: '{{ LOADING_SIZE|default:"lg" }}',
+            glass: {% if LOADING_GLASS %}true{% else %}false{% endif %}
+        };
+    </script>
+    <script src="{% static 'js/loading.js' %}"></script>
+
+    {# Custom JavaScript #}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Dynamic top bar height adjustment with debounce
+            function debounce(func, wait) {
+                let timeout;
+                return function executedFunction(...args) {
+                    const later = () => {
+                        clearTimeout(timeout);
+                        func(...args);
+                    };
+                    clearTimeout(timeout);
+                    timeout = setTimeout(later, wait);
+                };
+            }
+
+            function updateTopBarHeight() {
+                const topBar = document.querySelector('.top-bar');
+                const topBarHeight = topBar.offsetHeight;
+                document.documentElement.style.setProperty('--top-bar-height', `${topBarHeight}px`);
+            }
+
+            // Run on load
+            updateTopBarHeight();
+
+            // Update on window resize with debounce
+            const debouncedUpdate = debounce(updateTopBarHeight, 100);
+            window.addEventListener('resize', debouncedUpdate);
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatMessages = document.getElementById('chat-messages');
+            const chatInput = document.getElementById('chat-input');
+            const chatSend = document.getElementById('chat-send');
+
+            const sendMessage = () => {
+                const message = chatInput.value.trim();
+                if (message) {
+                    chatMessages.innerHTML += `
+                        <div class="bg-primary text-white p-3 rounded-lg mb-4 ml-auto max-w-xs">
+                            <p>${message}</p>
+                        </div>
+                    `;
+                    chatInput.value = '';
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+                    setTimeout(() => {
+                        const responses = [
+                            "{% trans 'Thanks for your message! Our team will help you with that shortly.' %}",
+                            "{% trans 'Great question! We have many tours that might interest you.' %}",
+                            "{% trans 'I recommend checking our featured tours for the best experiences.' %}",
+                            "{% trans 'Would you like me to help you book a tour?' %}"
+                        ];
+                        const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+
+                        chatMessages.innerHTML += `
+                            <div class="bg-gray-100 p-3 rounded-lg mb-4 max-w-xs">
+                                <p class="text-gray-800">${randomResponse}</p>
+                            </div>
+                        `;
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                    }, 1000);
+                }
+            };
+
+            chatSend.addEventListener('click', sendMessage);
+            chatInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+        });
+    </script>
+
+
+
+    {% block extra_js %}{% endblock extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+</body>
+</html>

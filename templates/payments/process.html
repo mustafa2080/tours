@@ -1,0 +1,1000 @@
+{% extends "base.html" %}
+{% load static i18n %}
+
+{% block title %}{% trans "Process Payment" %}{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Payment method selector styles */
+    .payment-method-selector {
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        width: 100%;
+        overflow: hidden;
+    }
+
+    .payment-method-selector:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    .payment-method-selector.selected {
+        border-color: #3B82F6;
+        background-color: #EFF6FF;
+        border-width: 2px;
+    }
+
+    /* Credit card icons */
+    .payment-method-selector .fab {
+        display: inline-block;
+        vertical-align: middle;
+    }
+
+    /* PayPal button container */
+    #paypal-button-container {
+        max-width: 100%;
+        margin: 0 auto;
+    }
+
+    /* Responsive styles */
+    @media (max-width: 640px) {
+        .payment-container {
+            padding: 1rem;
+        }
+
+        .payment-method-selector {
+            padding: 0.75rem;
+            min-height: 60px;
+        }
+
+        .payment-method-selector h3 {
+            font-size: 0.9rem;
+        }
+
+        .payment-method-selector p {
+            font-size: 0.75rem;
+        }
+
+        /* Smaller credit card icons on mobile */
+        .payment-method-selector .fab {
+            font-size: 1.25rem !important;
+        }
+
+        /* Ensure PayPal logo is visible */
+        .payment-method-selector img {
+            max-height: 20px;
+            width: auto;
+        }
+    }
+
+    /* Extra small screens */
+    @media (max-width: 375px) {
+        .payment-method-selector {
+            padding: 0.5rem;
+        }
+
+        .payment-method-selector h3 {
+            font-size: 0.8rem;
+        }
+
+        .payment-method-selector p {
+            font-size: 0.7rem;
+        }
+
+        /* Hide American Express icon on very small screens */
+        .card-icons .xs-hidden {
+            display: none !important;
+        }
+    }
+
+    /* Custom utility class for extra small screens */
+    @media (min-width: 640px) {
+        .xs\:inline-flex {
+            display: inline-flex !important;
+        }
+    }
+
+    /* Make sure PayPal buttons are responsive */
+    .paypal-button-container {
+        width: 100% !important;
+    }
+
+    .paypal-button {
+        width: 100% !important;
+        min-width: 100px !important;
+        max-width: 100% !important;
+    }
+
+    /* Large screen enhancements */
+    @media (min-width: 1024px) {
+        .payment-method-selector {
+            min-height: 80px;
+            transition: all 0.4s ease;
+        }
+
+        .payment-method-selector:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px -10px rgba(0, 0, 0, 0.1);
+        }
+
+        .payment-method-selector.selected {
+            transform: scale(1.03);
+        }
+
+        /* Enhanced selectors for large screens */
+        .payment-method-selector.lg-enhanced {
+            border-width: 1px;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .payment-method-selector.lg-enhanced:hover {
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .payment-method-selector.lg-enhanced.selected {
+            border-color: #2563EB;
+            border-width: 2px;
+            background-color: #EFF6FF;
+        }
+
+        #paypal-button-container {
+            max-width: 500px !important;
+            margin: 0 auto;
+        }
+
+        /* Enhance PayPal buttons on large screens */
+        .paypal-button {
+            height: 55px !important;
+        }
+    }
+
+    /* Fix for credit card icons alignment */
+    .card-icons {
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .card-icons span {
+        display: flex;
+        align-items: center;
+    }
+
+    /* Price summary styles */
+    #price-summary-mobile, #price-summary-desktop {
+        background-color: #f0f9ff;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+
+    #price-summary-mobile:hover, #price-summary-desktop:hover {
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Highlight price elements */
+    [id^="subtotal-"], [id^="discount-"], [id^="total-"] {
+        font-weight: 500;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        background-color: rgba(255, 255, 255, 0.7);
+        transition: background-color 0.3s ease;
+    }
+
+    [id^="total-"] {
+        font-weight: 700;
+        color: #2563eb !important;
+        background-color: rgba(219, 234, 254, 0.7);
+    }
+
+    [id^="discount-"] {
+        color: #10b981 !important;
+        background-color: rgba(209, 250, 229, 0.7);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-5xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-6 md:mb-8">
+            <h1 class="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-800 mb-2">{% trans "Complete Your Payment" %}</h1>
+            <p class="text-sm md:text-base text-gray-600 max-w-2xl mx-auto">{% trans "Please select a payment method to complete your booking" %}</p>
+        </div>
+
+        <!-- Progress Steps - Hide on small screens -->
+        <div class="hidden sm:block mb-8">
+            <div class="flex justify-between mb-2">
+                <div class="w-1/3 text-center">
+                    <div class="w-8 h-8 md:w-10 md:h-10 mx-auto rounded-full bg-green-600 flex items-center justify-center text-white font-bold">
+                        <i class="fas fa-check"></i>
+                    </div>
+                    <div class="mt-2 text-xs md:text-sm font-medium text-green-600">{% trans "Booking Details" %}</div>
+                </div>
+                <div class="w-1/3 text-center">
+                    <div class="w-8 h-8 md:w-10 md:h-10 mx-auto rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">2</div>
+                    <div class="mt-2 text-xs md:text-sm font-medium text-blue-600">{% trans "Payment" %}</div>
+                </div>
+                <div class="w-1/3 text-center">
+                    <div class="w-8 h-8 md:w-10 md:h-10 mx-auto rounded-full bg-gray-300 flex items-center justify-center text-gray-600 font-bold">3</div>
+                    <div class="mt-2 text-xs md:text-sm font-medium text-gray-600">{% trans "Confirmation" %}</div>
+                </div>
+            </div>
+            <div class="relative pt-1">
+                <div class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-gray-200">
+                    <div style="width: 66%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-600"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Progress Indicator - Show only on small screens -->
+        <div class="block sm:hidden mb-6">
+            <div class="flex items-center justify-center">
+                <div class="px-3 py-1 bg-green-100 text-green-800 rounded-l-full">
+                    <i class="fas fa-check text-xs mr-1"></i>
+                    <span class="text-xs">{% trans "Details" %}</span>
+                </div>
+                <div class="px-3 py-1 bg-blue-600 text-white">
+                    <span class="text-xs">{% trans "Payment" %}</span>
+                </div>
+                <div class="px-3 py-1 bg-gray-200 text-gray-600 rounded-r-full">
+                    <span class="text-xs">{% trans "Confirm" %}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Booking Summary for Mobile - Collapsible -->
+        <div class="block md:hidden mb-6">
+            <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="p-4 bg-blue-50 flex justify-between items-center cursor-pointer" onclick="toggleSummary()">
+                    <h2 class="text-lg font-semibold text-gray-700">{% trans "Booking Summary" %}</h2>
+                    <i id="summary-icon" class="fas fa-chevron-down text-gray-600"></i>
+                </div>
+
+                <div id="mobile-summary" class="p-4 hidden">
+                    <div class="space-y-3">
+                        <div>
+                            <h3 class="font-medium text-gray-700">{{ booking.tour.title }}</h3>
+                            <p class="text-sm text-gray-600">
+                                <i class="fas fa-map-marker-alt text-red-500 mr-1"></i> {{ booking.tour.location }}
+                            </p>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2 text-sm">
+                            <div>
+                                <span class="text-gray-600">{% trans "Booking ID" %}:</span>
+                                <span class="font-medium">{{ booking.id }}</span>
+                            </div>
+
+                            <div>
+                                <span class="text-gray-600">{% trans "Participants" %}:</span>
+                                <span class="font-medium">{{ booking.num_adults }} {% trans "adults" %}{% if booking.num_children %}, {{ booking.num_children }} {% trans "children" %}{% endif %}</span>
+                            </div>
+
+                            <div>
+                                <span class="text-gray-600">{% trans "Start Date" %}:</span>
+                                <span class="font-medium">{{ booking.start_date|date:"M d, Y" }}</span>
+                            </div>
+
+                            <div>
+                                <span class="text-gray-600">{% trans "End Date" %}:</span>
+                                <span class="font-medium">{{ booking.end_date|date:"M d, Y" }}</span>
+                            </div>
+                        </div>
+
+                        <div class="border-t pt-3 mt-3 space-y-2" id="price-summary-mobile">
+                            <div class="flex justify-between">
+                                <span class="text-gray-700">{% trans "Subtotal" %}:</span>
+                                <span class="text-gray-800" id="subtotal-mobile">{{ subtotal|floatformat:2 }} {{ request.session.currency_code|default:"USD" }}</span>
+                            </div>
+
+                            {% if has_discount %}
+                            <div class="flex justify-between text-green-600">
+                                <span>{% trans "Discount" %}:</span>
+                                <span id="discount-mobile">-{{ discount|floatformat:2 }} {{ request.session.currency_code|default:"USD" }}</span>
+                            </div>
+                            {% endif %}
+
+                            <div class="flex justify-between font-bold pt-2 border-t border-gray-200">
+                                <span class="text-gray-800">{% trans "Total Amount" %}:</span>
+                                <span class="text-blue-600" id="total-mobile">{{ booking.total_price|floatformat:2 }} {{ request.session.currency_code|default:"USD" }}</span>
+                            </div>
+
+                            <div class="text-xs text-gray-500 mt-1 text-center">
+                                {% trans "Based on" %} {{ booking.num_adults }} {% trans "adults" %}{% if booking.num_children %} {% trans "and" %} {{ booking.num_children }} {% trans "children" %}{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-12 gap-6">
+            <!-- Left Column: Booking Summary (Desktop) -->
+            <div class="hidden md:block md:col-span-1 lg:col-span-4">
+                <div class="bg-white rounded-xl shadow-md p-6 sticky top-24">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-2">{% trans "Booking Summary" %}</h2>
+
+                    <div class="space-y-4">
+                        <div>
+                            <h3 class="font-medium text-gray-700">{{ booking.tour.title }}</h3>
+                            <p class="text-sm text-gray-600">
+                                <i class="fas fa-map-marker-alt text-red-500 mr-1"></i> {{ booking.tour.location }}
+                            </p>
+                        </div>
+
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">{% trans "Booking ID" %}:</span>
+                            <span class="font-medium">{{ booking.id }}</span>
+                        </div>
+
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">{% trans "Start Date" %}:</span>
+                            <span class="font-medium">{{ booking.start_date|date:"M d, Y" }}</span>
+                        </div>
+
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">{% trans "End Date" %}:</span>
+                            <span class="font-medium">{{ booking.end_date|date:"M d, Y" }}</span>
+                        </div>
+
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">{% trans "Participants" %}:</span>
+                            <span class="font-medium">{{ booking.num_adults }} {% trans "adults" %}{% if booking.num_children %}, {{ booking.num_children }} {% trans "children" %}{% endif %}</span>
+                        </div>
+
+                        <div class="border-t pt-3 mt-3 space-y-2" id="price-summary-desktop">
+                            <div class="flex justify-between">
+                                <span class="text-gray-700">{% trans "Subtotal" %}:</span>
+                                <span class="text-gray-800" id="subtotal-desktop">{{ subtotal|floatformat:2 }} {{ request.session.currency_code|default:"USD" }}</span>
+                            </div>
+
+                            {% if has_discount %}
+                            <div class="flex justify-between text-green-600">
+                                <span>{% trans "Discount" %}:</span>
+                                <span id="discount-desktop">-{{ discount|floatformat:2 }} {{ request.session.currency_code|default:"USD" }}</span>
+                            </div>
+                            {% endif %}
+
+                            <div class="flex justify-between font-bold pt-2 border-t border-gray-200">
+                                <span class="text-gray-800">{% trans "Total Amount" %}:</span>
+                                <span class="text-blue-600" id="total-desktop">{{ booking.total_price|floatformat:2 }} {{ request.session.currency_code|default:"USD" }}</span>
+                            </div>
+
+                            <div class="text-xs text-gray-500 mt-1 text-center">
+                                {% trans "Based on" %} {{ booking.num_adults }} {% trans "adults" %}{% if booking.num_children %} {% trans "and" %} {{ booking.num_children }} {% trans "children" %}{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Payment Methods -->
+            <div class="md:col-span-2 lg:col-span-8">
+                <div class="bg-white rounded-xl shadow-md p-4 md:p-6 lg:p-8 payment-container">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-2">{% trans "Select Payment Method" %}</h2>
+
+                    <!-- Progress Bar Section -->
+                    <div class="mb-8">
+                        <div class="relative pt-1">
+                            <div class="flex mb-2 items-center justify-between">
+                                <div>
+                                    <span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-blue-600 bg-blue-100">
+                                        {% trans "التقدم في عملية الدفع" %}
+                                    </span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-xs font-semibold inline-block text-blue-600" x-text="progressText">
+                                        0%
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-blue-100">
+                                <div id="progress-bar" style="width:0%"
+                                     class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-600 transition-all duration-500">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Methods Section -->
+                    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+                        <h3 class="text-lg font-semibold mb-4">{% trans "اختر طريقة الدفع" %}</h3>
+
+                        <div class="space-y-4">
+                            <!-- PayPal Option -->
+                            <div class="payment-method cursor-pointer p-4 border rounded-lg hover:border-blue-500 transition-all"
+                                 :class="{'border-blue-500 bg-blue-50': selectedMethod === 'paypal'}"
+                                 @click="selectPaymentMethod('paypal')">
+                                <div class="flex items-center">
+                                    <img src="https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg" alt="PayPal" class="h-8 mr-4">
+                                    <div>
+                                        <h4 class="font-medium">PayPal</h4>
+                                        <p class="text-sm text-gray-600">{% trans "الدفع الآمن عبر PayPal" %}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Card Processing Section -->
+                            <div id="payment-processing" class="hidden">
+                                <div class="flex items-center justify-center space-x-3">
+                                    <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                                    <span class="text-gray-600">{% trans "جاري معالجة الدفع..." %}</span>
+                                </div>
+                            </div>
+
+                            <!-- Success Message -->
+                            <div id="payment-success" class="hidden text-center">
+                                <div class="mb-4">
+                                    <i class="fas fa-check-circle text-green-500 text-4xl"></i>
+                                </div>
+                                <h4 class="text-lg font-medium text-green-600 mb-2">{% trans "تم الدفع بنجاح!" %}</h4>
+                                <p class="text-gray-600">{% trans "جاري تحويلك إلى صفحة التأكيد..." %}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Method Selection -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 lg:gap-6 mb-6 lg:mb-8 max-w-3xl mx-auto">
+                        <!-- PayPal Option -->
+                        <div class="payment-method-selector border rounded-lg p-3 md:p-4 lg:p-6 flex items-center {% if payment_method == 'paypal' %}selected{% endif %}" data-method="paypal">
+                            <img src="https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg" alt="PayPal" class="h-6 md:h-8 lg:h-10 mr-2 md:mr-3 lg:mr-4 flex-shrink-0">
+                            <div class="min-w-0">
+                                <h3 class="font-medium text-sm md:text-base lg:text-lg truncate">PayPal</h3>
+                                <p class="text-xs md:text-sm text-gray-600 truncate">{% trans "Pay securely with PayPal" %}</p>
+                            </div>
+                        </div>
+
+                        <!-- Credit Card Option -->
+                        <div class="payment-method-selector border rounded-lg p-3 md:p-4 lg:p-6 flex items-center {% if payment_method == 'card' %}selected{% endif %}" data-method="card">
+                            <div class="card-icons flex-shrink-0 mr-2 md:mr-3 lg:mr-4">
+                                <span class="inline-flex">
+                                    <i class="fab fa-cc-visa text-blue-800 text-lg md:text-2xl lg:text-3xl"></i>
+                                </span>
+                                <span class="inline-flex ml-1 lg:ml-2">
+                                    <i class="fab fa-cc-mastercard text-red-600 text-lg md:text-2xl lg:text-3xl"></i>
+                                </span>
+                                <span class="ml-1 lg:ml-2 hidden sm:inline-flex">
+                                    <i class="fab fa-cc-amex text-blue-500 text-lg md:text-2xl lg:text-3xl"></i>
+                                </span>
+                            </div>
+                            <div class="min-w-0 flex-grow">
+                                <h3 class="font-medium text-sm md:text-base lg:text-lg truncate">{% trans "Credit Card" %}</h3>
+                                <p class="text-xs md:text-sm text-gray-600 truncate">{% trans "Pay with credit or debit card" %}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PayPal Payment Form -->
+                    <div id="paypal-payment-form" class="{% if payment_method != 'paypal' %}hidden{% endif %} max-w-3xl mx-auto">
+                        <div class="bg-blue-50 p-3 md:p-4 lg:p-6 rounded-lg mb-4 md:mb-6 lg:mb-8">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-info-circle text-blue-500 mt-1 text-base md:text-lg lg:text-xl"></i>
+                                </div>
+                                <div class="ml-3">
+                                    <h3 class="text-xs md:text-sm lg:text-base font-medium text-blue-800">{% trans "Pay with PayPal" %}</h3>
+                                    <div class="mt-1 md:mt-2 text-xs md:text-sm lg:text-base text-blue-700">
+                                        <p>{% trans "You can pay securely with your PayPal account or credit card without creating a PayPal account." %}</p>
+                                        <div class="mt-2 flex flex-wrap gap-2">
+                                            <i class="fab fa-cc-visa text-blue-800 text-xl"></i>
+                                            <i class="fab fa-cc-mastercard text-red-600 text-xl"></i>
+                                            <i class="fab fa-cc-amex text-blue-500 text-xl"></i>
+                                            <i class="fab fa-cc-discover text-orange-600 text-xl"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- PayPal Button Container -->
+                        <div id="paypal-button-container" class="w-full max-w-lg mx-auto"></div>
+                    </div>
+
+                    <!-- Credit Card Payment Form -->
+                    <div id="card-payment-form" class="{% if payment_method != 'card' %}hidden{% endif %} max-w-3xl mx-auto">
+                        <div class="bg-blue-50 p-3 md:p-4 lg:p-6 rounded-lg mb-4 md:mb-6 lg:mb-8">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-info-circle text-blue-500 mt-1 text-base md:text-lg lg:text-xl"></i>
+                                </div>
+                                <div class="ml-3">
+                                    <h3 class="text-xs md:text-sm lg:text-base font-medium text-blue-800">{% trans "Test Mode Active" %}</h3>
+                                    <div class="mt-1 md:mt-2 text-xs md:text-sm lg:text-base text-blue-700">
+                                        <p>{% trans "The system is running in test mode. You can use the form below to simulate a credit card payment." %}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Credit card form with test mode functionality -->
+                        <div class="max-w-lg mx-auto">
+                            <div class="mb-3 md:mb-4 lg:mb-5">
+                                <label for="card-number" class="block text-xs md:text-sm lg:text-base font-medium text-gray-700 mb-1 lg:mb-2">{% trans "Card Number" %}</label>
+                                <input type="text" id="card-number" placeholder="4242 4242 4242 4242" value="4242 4242 4242 4242" class="w-full p-2 lg:p-3 border rounded-md lg:rounded-lg">
+                                <p class="text-xs text-gray-500 mt-1">{% trans "Use 4242 4242 4242 4242 for testing" %}</p>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3 md:gap-4 lg:gap-6 mb-3 md:mb-4 lg:mb-5">
+                                <div>
+                                    <label for="expiry-date" class="block text-xs md:text-sm lg:text-base font-medium text-gray-700 mb-1 lg:mb-2">{% trans "Expiry Date" %}</label>
+                                    <input type="text" id="expiry-date" placeholder="MM/YY" value="12/25" class="w-full p-2 lg:p-3 border rounded-md lg:rounded-lg">
+                                </div>
+                                <div>
+                                    <label for="cvv" class="block text-xs md:text-sm lg:text-base font-medium text-gray-700 mb-1 lg:mb-2">{% trans "CVV" %}</label>
+                                    <input type="text" id="cvv" placeholder="123" value="123" class="w-full p-2 lg:p-3 border rounded-md lg:rounded-lg">
+                                </div>
+                            </div>
+
+                            <div class="mb-4 md:mb-6 lg:mb-8">
+                                <label for="card-name" class="block text-xs md:text-sm lg:text-base font-medium text-gray-700 mb-1 lg:mb-2">{% trans "Name on Card" %}</label>
+                                <input type="text" id="card-name" placeholder="John Doe" value="Test User" class="w-full p-2 lg:p-3 border rounded-md lg:rounded-lg">
+                            </div>
+
+                            <button type="button" id="card-payment-button" class="w-full px-4 md:px-6 py-2 md:py-3 lg:py-4 bg-blue-600 text-white font-medium text-sm md:text-base lg:text-lg rounded-lg shadow-md hover:bg-blue-700 transition duration-300">
+                                <i class="fas fa-lock mr-2"></i> {% trans "Pay Now" %} (<span id="card-payment-amount">{{ booking.total_price|floatformat:2 }} {{ request.session.currency_code|default:"USD" }}</span>)
+                            </button>
+                            <p class="text-xs text-center text-gray-500 mt-2">{% trans "This is a test payment and no actual charge will be made" %}</p>
+                        </div>
+                    </div>
+
+                    <script>
+                        // Add event listener for credit card payment button
+                        document.addEventListener('DOMContentLoaded', function() {
+                            const cardPaymentButton = document.getElementById('card-payment-button');
+                            if (cardPaymentButton) {
+                                cardPaymentButton.addEventListener('click', function() {
+                                    // Show loading state
+                                    cardPaymentButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> {% trans "Processing..." %}';
+                                    cardPaymentButton.disabled = true;
+
+                                    // Simulate payment processing
+                                    setTimeout(function() {
+                                        // Get the card form container
+                                        const cardForm = document.getElementById('card-payment-form');
+
+                                        // Show success message
+                                        cardForm.innerHTML = `
+                                            <div class="text-center py-8">
+                                                <div class="w-16 h-16 mx-auto bg-green-100 rounded-full flex items-center justify-center mb-4">
+                                                    <i class="fas fa-check-circle text-green-500 text-3xl"></i>
+                                                </div>
+                                                <h3 class="text-xl font-bold text-gray-800 mb-2">{% trans "Payment Successful!" %}</h3>
+                                                <p class="text-gray-600 mb-6">{% trans "Your payment has been processed successfully." %}</p>
+                                                <div class="animate-pulse">
+                                                    <p class="text-sm text-gray-500">{% trans "Redirecting to confirmation page..." %}</p>
+                                                </div>
+                                            </div>
+                                        `;
+
+                                        // Redirect to success page after a delay
+                                        setTimeout(function() {
+                                            window.location.href = '{% url "payments:success" %}';
+                                        }, 2000);
+                                    }, 1500);
+                                });
+                            }
+                        });
+                    </script>
+
+                    <!-- Back to Booking Button -->
+                    <div class="mt-6 md:mt-8 lg:mt-10 text-center">
+                        <a href="{% url 'booking:booking_detail' booking.id %}" class="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm md:text-base lg:text-lg transition-colors duration-300">
+                            <i class="fas fa-arrow-left mr-2"></i> {% trans "Back to Booking Details" %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- PayPal SDK with Credit Card option enabled -->
+<script src="https://www.paypal.com/sdk/js?client-id={{ paypal_client_id }}&currency={{ request.session.currency_code|default:'USD' }}&components=buttons,hosted-fields" id="paypal-script"></script>
+<script>
+    // Add error handling for PayPal SDK loading
+    document.getElementById('paypal-script').addEventListener('error', function() {
+        console.error('Failed to load PayPal SDK');
+        const buttonContainer = document.getElementById('paypal-button-container');
+        if (buttonContainer) {
+            buttonContainer.innerHTML = `
+                <div class="bg-red-50 p-4 rounded-lg mb-4">
+                    <p class="text-red-800 font-medium mb-2">{% trans "PayPal SDK Failed to Load" %}</p>
+                    <p class="text-red-700 text-sm mb-3">{% trans "There was an error loading the PayPal SDK. Please try refreshing the page or use the test payment option below." %}</p>
+                    <button id="test-payment-button" class="w-full px-4 py-3 bg-blue-600 text-white font-medium rounded-lg shadow-md hover:bg-blue-700 transition duration-300">
+                        <i class="fas fa-credit-card mr-2"></i> {% trans "Simulate Payment" %}
+                    </button>
+                </div>
+            `;
+
+            // Add event listener to the test button
+            document.getElementById('test-payment-button').addEventListener('click', function() {
+                // Show loading state
+                this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> {% trans "Processing..." %}';
+                this.disabled = true;
+
+                // Simulate API call delay
+                setTimeout(function() {
+                    window.location.href = '{% url "payments:success" %}';
+                }, 1500);
+            });
+        }
+    });
+</script>
+
+<script>
+    // Function to toggle mobile summary
+    function toggleSummary() {
+        const summary = document.getElementById('mobile-summary');
+        const icon = document.getElementById('summary-icon');
+
+        if (summary.classList.contains('hidden')) {
+            summary.classList.remove('hidden');
+            icon.classList.remove('fa-chevron-down');
+            icon.classList.add('fa-chevron-up');
+        } else {
+            summary.classList.add('hidden');
+            icon.classList.remove('fa-chevron-up');
+            icon.classList.add('fa-chevron-down');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Show mobile summary by default on small screens
+        const mobileSummary = document.getElementById('mobile-summary');
+        if (mobileSummary && window.innerWidth < 768) {
+            toggleSummary();
+        }
+
+        // Payment method selection
+        const paymentSelectors = document.querySelectorAll('.payment-method-selector');
+        const paypalForm = document.getElementById('paypal-payment-form');
+        const cardForm = document.getElementById('card-payment-form');
+
+        paymentSelectors.forEach(selector => {
+            selector.addEventListener('click', function() {
+                // Remove selected class from all selectors
+                paymentSelectors.forEach(s => s.classList.remove('selected'));
+
+                // Add selected class to clicked selector
+                this.classList.add('selected');
+
+                // Show/hide payment forms based on selection
+                const method = this.getAttribute('data-method');
+                if (method === 'paypal') {
+                    paypalForm.classList.remove('hidden');
+                    cardForm.classList.add('hidden');
+                } else if (method === 'card') {
+                    paypalForm.classList.add('hidden');
+                    cardForm.classList.remove('hidden');
+                }
+            });
+        });
+
+        // Initialize PayPal buttons with responsive settings
+        if (paypalForm) {
+            // Check if PayPal SDK is loaded
+            if (!window.paypal) {
+                console.error('PayPal SDK not loaded');
+
+                // Create a fallback button for test mode
+                const buttonContainer = document.getElementById('paypal-button-container');
+                if (buttonContainer) {
+                    buttonContainer.innerHTML = `
+                        <div class="bg-blue-50 p-4 rounded-lg mb-4">
+                            <p class="text-blue-800 font-medium mb-2">{% trans "PayPal Test Mode Active" %}</p>
+                            <p class="text-blue-700 text-sm mb-3">{% trans "The system is running in test mode. Click the button below to simulate a successful payment." %}</p>
+                        </div>
+                        <button id="test-payment-button" class="w-full px-4 py-3 bg-blue-600 text-white font-medium rounded-lg shadow-md hover:bg-blue-700 transition duration-300">
+                            <i class="fas fa-credit-card mr-2"></i> {% trans "Simulate Successful Payment" %}
+                        </button>
+                    `;
+
+                    // Add event listener to the test button
+                    document.getElementById('test-payment-button').addEventListener('click', function() {
+                        console.log('Test payment button clicked');
+
+                        // Show loading state
+                        const button = document.getElementById('test-payment-button');
+                        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> {% trans "Processing..." %}';
+                        button.disabled = true;
+
+                        // Simulate API call delay
+                        setTimeout(function() {
+                            // Show success message
+                            buttonContainer.innerHTML = '<div class="text-center py-4 text-green-500"><i class="fas fa-check-circle text-2xl"></i><p class="mt-2 text-sm">{% trans "Payment successful! Redirecting..." %}</p></div>';
+
+                            // Redirect to success page after a short delay
+                            setTimeout(function() {
+                                window.location.href = '{% url "payments:success" %}';
+                            }, 1500);
+                        }, 1500);
+                    });
+                }
+            } else {
+                // Regular PayPal integration
+                paypal.Buttons({
+                    // Style the buttons
+                    style: {
+                        layout: 'vertical',  // vertical layout for better mobile experience
+                        color: 'blue',       // blue buttons
+                        shape: 'rect',       // rectangular shape
+                        label: 'paypal',     // Show PayPal logo to indicate multiple payment options
+                        height: 55,          // Larger height for better visibility
+                        tagline: false       // Remove tagline for cleaner look
+                    },
+                    // Enable all available funding sources
+                    funding: {
+                        allowed: [
+                            paypal.FUNDING.PAYPAL,
+                            paypal.FUNDING.CARD,
+                            paypal.FUNDING.CREDIT
+                        ],
+                        disallowed: []
+                    },
+
+                    // Set up the transaction
+                    createOrder: function(data, actions) {
+                        // Show loading indicator
+                        const buttonContainer = document.getElementById('paypal-button-container');
+                        buttonContainer.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin text-blue-500 text-2xl"></i><p class="mt-2 text-sm text-gray-600">{% trans "Connecting to PayPal..." %}</p></div>';
+
+                        console.log('Creating PayPal order for booking ID: {{ booking.id }}');
+                        return fetch('{% url "payments:create_paypal_order" booking.id %}', {
+                            method: 'post',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': '{{ csrf_token }}'
+                            }
+                        }).then(function(res) {
+                            console.log('Response status:', res.status);
+                            return res.json();
+                        }).then(function(orderData) {
+                            console.log('Order data received:', orderData);
+                            if (orderData.error) {
+                                // Show error message
+                                buttonContainer.innerHTML = '<div class="text-center py-4 text-red-500"><i class="fas fa-exclamation-circle text-2xl"></i><p class="mt-2 text-sm">{% trans "Error connecting to PayPal. Please try again." %}</p></div>';
+                                throw new Error(orderData.error);
+                            }
+
+                            // Clear the loading indicator
+                            buttonContainer.innerHTML = '';
+
+                            // Return the order ID to continue with PayPal flow
+                            console.log('PayPal order created successfully:', orderData.id);
+
+                            return orderData.id;
+                        }).catch(function(error) {
+                            console.error('Error creating PayPal order:', error);
+
+                            // Show error message with retry button
+                            const buttonContainer = document.getElementById('paypal-button-container');
+                            buttonContainer.innerHTML = `
+                                <div class="bg-red-50 p-4 rounded-lg mb-4">
+                                    <p class="text-red-800 font-medium mb-2">{% trans "Error Creating Order" %}</p>
+                                    <p class="text-red-700 text-sm mb-3">{% trans "There was an error creating your PayPal order. Please try again." %}</p>
+                                    <button id="retry-button" class="px-4 py-2 bg-blue-600 text-white rounded-lg">{% trans "Try Again" %}</button>
+                                </div>
+                            `;
+
+                            // Add event listener to retry button
+                            document.getElementById('retry-button').addEventListener('click', function() {
+                                window.location.reload();
+                            });
+
+                            throw error;
+                        });
+                    },
+
+                    // Finalize the transaction
+                    onApprove: function(data, actions) {
+                        // Show loading indicator
+                        const buttonContainer = document.getElementById('paypal-button-container');
+                        buttonContainer.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin text-blue-500 text-2xl"></i><p class="mt-2 text-sm text-gray-600">{% trans "Processing payment..." %}</p></div>';
+
+                        console.log('Capturing PayPal payment for order ID:', data.orderID);
+                        return fetch('{% url "payments:capture_paypal_payment" %}', {
+                            method: 'post',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': '{{ csrf_token }}'
+                            },
+                            body: JSON.stringify({
+                                orderID: data.orderID
+                            })
+                        }).then(function(res) {
+                            console.log('Capture response status:', res.status);
+                            return res.json();
+                        }).then(function(captureData) {
+                            console.log('Capture data received:', captureData);
+                            if (captureData.error) {
+                                // Show error message
+                                buttonContainer.innerHTML = '<div class="text-center py-4 text-red-500"><i class="fas fa-exclamation-circle text-2xl"></i><p class="mt-2 text-sm">{% trans "Error processing payment. Please try again." %}</p></div>';
+                                throw new Error(captureData.error);
+                            }
+
+                            // Show success message before redirect
+                            buttonContainer.innerHTML = '<div class="text-center py-4 text-green-500"><i class="fas fa-check-circle text-2xl"></i><p class="mt-2 text-sm">{% trans "Payment successful! Redirecting..." %}</p></div>';
+
+                            // Redirect to success page after a short delay
+                            setTimeout(() => {
+                                window.location.href = captureData.redirect_url;
+                            }, 1500);
+                        }).catch(function(error) {
+                            console.error('Error capturing PayPal payment:', error);
+
+                            // Show error message with retry button
+                            buttonContainer.innerHTML = `
+                                <div class="bg-red-50 p-4 rounded-lg mb-4">
+                                    <p class="text-red-800 font-medium mb-2">{% trans "Payment Processing Error" %}</p>
+                                    <p class="text-red-700 text-sm mb-3">{% trans "There was an error processing your payment. Please try again." %}</p>
+                                    <button id="retry-button" class="px-4 py-2 bg-blue-600 text-white rounded-lg">{% trans "Try Again" %}</button>
+                                </div>
+                            `;
+
+                            // Add event listener to retry button
+                            document.getElementById('retry-button').addEventListener('click', function() {
+                                window.location.reload();
+                            });
+                        });
+                    },
+
+                    // Handle errors
+                    onError: function(err) {
+                        console.error('PayPal Error:', err);
+
+                        // Show user-friendly error message
+                        const buttonContainer = document.getElementById('paypal-button-container');
+                        buttonContainer.innerHTML = '<div class="text-center py-4 text-red-500"><i class="fas fa-exclamation-circle text-2xl"></i><p class="mt-2 text-sm">{% trans "There was an error processing your payment. Please try again or contact support." %}</p><p class="mt-1 text-xs text-gray-600">Error details: ' + err + '</p><button class="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg" onclick="window.location.reload()">{% trans "Try Again" %}</button></div>';
+                    },
+
+                    // Add onCancel handler
+                    onCancel: function() {
+                        console.log('Payment cancelled by user');
+                        const buttonContainer = document.getElementById('paypal-button-container');
+                        buttonContainer.innerHTML = '<div class="text-center py-4 text-yellow-500"><i class="fas fa-exclamation-triangle text-2xl"></i><p class="mt-2 text-sm">{% trans "Payment was cancelled. You can try again when you\'re ready." %}</p><button class="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg" onclick="window.location.reload()">{% trans "Try Again" %}</button></div>';
+                    }
+                }).render('#paypal-button-container');
+            }
+        }
+
+        // Handle window resize for responsive adjustments
+        window.addEventListener('resize', function() {
+            // Adjust PayPal button container width
+            const paypalContainer = document.getElementById('paypal-button-container');
+            if (paypalContainer) {
+                if (window.innerWidth < 768) {
+                    paypalContainer.style.maxWidth = '100%';
+                } else if (window.innerWidth >= 1024) {
+                    paypalContainer.style.maxWidth = '500px';
+                } else {
+                    paypalContainer.style.maxWidth = '400px';
+                }
+            }
+
+            // Adjust payment method selectors for better appearance
+            const paymentSelectors = document.querySelectorAll('.payment-method-selector');
+            paymentSelectors.forEach(selector => {
+                if (window.innerWidth >= 1024) {
+                    selector.classList.add('lg-enhanced');
+                } else {
+                    selector.classList.remove('lg-enhanced');
+                }
+            });
+        });
+
+        // Initial call to set correct sizes
+        if (window.innerWidth >= 1024) {
+            document.querySelectorAll('.payment-method-selector').forEach(selector => {
+                selector.classList.add('lg-enhanced');
+            });
+        }
+
+        // Display prices from server
+        function displayPrices() {
+            // Get booking details and prices from server
+            const numAdults = {{ booking.num_adults }};
+            const numChildren = {{ booking.num_children }};
+            const subtotal = {{ subtotal }};
+            const discountAmount = {{ discount }};
+            const total = {{ total_price }};
+            const hasDiscount = {% if has_discount %}true{% else %}false{% endif %};
+            const currency = '{{ request.session.currency_code|default:"USD" }}';
+
+            // Get price elements
+            const subtotalMobile = document.getElementById('subtotal-mobile');
+            const subtotalDesktop = document.getElementById('subtotal-desktop');
+            const totalMobile = document.getElementById('total-mobile');
+            const totalDesktop = document.getElementById('total-desktop');
+
+            // Update mobile elements
+            if (subtotalMobile) subtotalMobile.textContent = `${subtotal.toFixed(2)} ${currency}`;
+            if (totalMobile) totalMobile.textContent = `${total.toFixed(2)} ${currency}`;
+
+            // Update desktop elements
+            if (subtotalDesktop) subtotalDesktop.textContent = `${subtotal.toFixed(2)} ${currency}`;
+            if (totalDesktop) totalDesktop.textContent = `${total.toFixed(2)} ${currency}`;
+
+            // If there's a discount, update those elements too
+            if (hasDiscount) {
+                const discountMobile = document.getElementById('discount-mobile');
+                const discountDesktop = document.getElementById('discount-desktop');
+
+                if (discountMobile) discountMobile.textContent = `-${discountAmount.toFixed(2)} ${currency}`;
+                if (discountDesktop) discountDesktop.textContent = `-${discountAmount.toFixed(2)} ${currency}`;
+            }
+
+            console.log('Prices from server:', {
+                numAdults,
+                numChildren,
+                subtotal: subtotal.toFixed(2),
+                discount: discountAmount.toFixed(2),
+                total: total.toFixed(2)
+            });
+        }
+
+        // Call immediately and also after a short delay to ensure values are set
+        displayPrices();
+
+        // Update card payment button amount
+        function updateCardPaymentAmount() {
+            const cardPaymentAmount = document.getElementById('card-payment-amount');
+            const totalDesktop = document.getElementById('total-desktop');
+
+            if (cardPaymentAmount && totalDesktop) {
+                cardPaymentAmount.textContent = totalDesktop.textContent;
+            }
+        }
+
+        // Call after prices are updated
+        setTimeout(updateCardPaymentAmount, 600);
+    });
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const progressBar = document.getElementById('progress-bar');
+
+    function updateProgress(percent) {
+        progressBar.style.width = `${percent}%`;
+    }
+
+    function handlePaymentSuccess() {
+        // إخفاء قسم المعالجة
+        document.getElementById('payment-processing').classList.add('hidden');
+
+        // إظهار رسالة النجاح
+        document.getElementById('payment-success').classList.remove('hidden');
+
+        // تحديث شريط التقدم
+        updateProgress(100);
+
+        // الانتقال إلى صفحة التأكيد بعد فترة قصيرة
+        setTimeout(() => {
+            window.location.href = '{% url "payments:confirmation" %}';
+        }, 2000);
+    }
+
+    // عند الضغط على زر الدفع
+    document.querySelectorAll('.payment-method').forEach(method => {
+        method.addEventListener('click', function() {
+            // إظهار قسم المعالجة
+            document.getElementById('payment-processing').classList.remove('hidden');
+
+            // تحديث شريط التقدم
+            updateProgress(50);
+
+            // محاكاة عملية الدفع
+            setTimeout(handlePaymentSuccess, 2000);
+        });
+    });
+});
+</script>
+{% endblock %}
