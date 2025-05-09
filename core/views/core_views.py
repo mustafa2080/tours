@@ -108,9 +108,29 @@ class AboutView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         try:
-            context['site_settings'] = SiteSetting.objects.first()
-        except SiteSetting.DoesNotExist:
+            # Check if the SiteSetting table exists
+            from django.db import connection
+            with connection.cursor() as cursor:
+                try:
+                    cursor.execute("SELECT 1 FROM core_sitesetting LIMIT 1")
+                    sitesetting_table_exists = True
+                except Exception:
+                    sitesetting_table_exists = False
+
+            if sitesetting_table_exists:
+                try:
+                    context['site_settings'] = SiteSetting.objects.first()
+                except SiteSetting.DoesNotExist:
+                    context['site_settings'] = None
+            else:
+                context['site_settings'] = None
+
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error in AboutView: {e}")
             context['site_settings'] = None
+
         return context
 
 
@@ -119,7 +139,31 @@ class FAQListView(ListView):
     model = FAQ
     template_name = 'core/faq.html'
     context_object_name = 'faqs'
-    queryset = FAQ.objects.filter(is_active=True)
+
+    def get_queryset(self):
+        """Check if the core_faq table exists before querying"""
+        try:
+            # Check if the FAQ table exists
+            from django.db import connection
+            with connection.cursor() as cursor:
+                try:
+                    cursor.execute("SELECT 1 FROM core_faq LIMIT 1")
+                    faq_table_exists = True
+                except Exception:
+                    faq_table_exists = False
+
+            if not faq_table_exists:
+                # Return an empty queryset if the table doesn't exist
+                return FAQ.objects.none()
+
+            # If table exists, continue with normal query
+            return FAQ.objects.filter(is_active=True)
+
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error in FAQListView: {e}")
+            return FAQ.objects.none()
 
 
 class ContactView(FormView):
@@ -144,9 +188,29 @@ class ContactView(FormView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         try:
-            context['site_settings'] = SiteSetting.objects.first()
-        except SiteSetting.DoesNotExist:
+            # Check if the SiteSetting table exists
+            from django.db import connection
+            with connection.cursor() as cursor:
+                try:
+                    cursor.execute("SELECT 1 FROM core_sitesetting LIMIT 1")
+                    sitesetting_table_exists = True
+                except Exception:
+                    sitesetting_table_exists = False
+
+            if sitesetting_table_exists:
+                try:
+                    context['site_settings'] = SiteSetting.objects.first()
+                except SiteSetting.DoesNotExist:
+                    context['site_settings'] = None
+            else:
+                context['site_settings'] = None
+
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error in ContactView.get_context_data: {e}")
             context['site_settings'] = None
+
         return context
 
 
@@ -174,9 +238,29 @@ class TermsConditionsView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         try:
-            context['site_settings'] = SiteSetting.objects.first()
-        except SiteSetting.DoesNotExist:
+            # Check if the SiteSetting table exists
+            from django.db import connection
+            with connection.cursor() as cursor:
+                try:
+                    cursor.execute("SELECT 1 FROM core_sitesetting LIMIT 1")
+                    sitesetting_table_exists = True
+                except Exception:
+                    sitesetting_table_exists = False
+
+            if sitesetting_table_exists:
+                try:
+                    context['site_settings'] = SiteSetting.objects.first()
+                except SiteSetting.DoesNotExist:
+                    context['site_settings'] = None
+            else:
+                context['site_settings'] = None
+
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error in TermsConditionsView: {e}")
             context['site_settings'] = None
+
         return context
 
 
@@ -187,9 +271,29 @@ class PrivacyPolicyView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         try:
-            context['site_settings'] = SiteSetting.objects.first()
-        except SiteSetting.DoesNotExist:
+            # Check if the SiteSetting table exists
+            from django.db import connection
+            with connection.cursor() as cursor:
+                try:
+                    cursor.execute("SELECT 1 FROM core_sitesetting LIMIT 1")
+                    sitesetting_table_exists = True
+                except Exception:
+                    sitesetting_table_exists = False
+
+            if sitesetting_table_exists:
+                try:
+                    context['site_settings'] = SiteSetting.objects.first()
+                except SiteSetting.DoesNotExist:
+                    context['site_settings'] = None
+            else:
+                context['site_settings'] = None
+
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error in PrivacyPolicyView: {e}")
             context['site_settings'] = None
+
         return context
 
 @require_POST
@@ -198,12 +302,35 @@ def set_currency(request):
     currency_code = request.POST.get('currency_code')
     next_url = request.POST.get('next', '/') # Default redirect to home
 
-    # Validate if the currency code exists
-    if currency_code and Currency.objects.filter(code=currency_code).exists():
-        request.session['currency_code'] = currency_code
-        messages.success(request, _(f"Currency set to {currency_code}."))
-    else:
-        messages.error(request, _("Invalid currency selected."))
+    try:
+        # Check if the Currency table exists
+        from django.db import connection
+        with connection.cursor() as cursor:
+            try:
+                cursor.execute("SELECT 1 FROM core_currency LIMIT 1")
+                currency_table_exists = True
+            except Exception:
+                currency_table_exists = False
+
+        # Validate if the currency code exists
+        if currency_table_exists and currency_code and Currency.objects.filter(code=currency_code).exists():
+            request.session['currency_code'] = currency_code
+            messages.success(request, _(f"Currency set to {currency_code}."))
+        else:
+            # If table doesn't exist or currency not found, set USD as default
+            request.session['currency_code'] = 'USD'
+            if not currency_table_exists:
+                messages.info(request, _("Currency system is being set up. Using USD for now."))
+            else:
+                messages.error(request, _("Invalid currency selected. Using USD."))
+
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error in set_currency: {e}")
+        # Set USD as default in case of error
+        request.session['currency_code'] = 'USD'
+        messages.error(request, _("Error setting currency. Using USD."))
 
     # Redirect back to the 'next' URL or the default
     return redirect(next_url)
@@ -211,6 +338,30 @@ def set_currency(request):
 def get_exchange_rates(request):
     """API endpoint to get current exchange rates for JavaScript"""
     try:
+        # Check if the Currency table exists
+        from django.db import connection
+        with connection.cursor() as cursor:
+            try:
+                cursor.execute("SELECT 1 FROM core_currency LIMIT 1")
+                currency_table_exists = True
+            except Exception:
+                currency_table_exists = False
+
+        if not currency_table_exists:
+            # Return default USD only if table doesn't exist
+            return JsonResponse({
+                'base_currency': 'USD',
+                'rates': {
+                    'USD': {
+                        'code': 'USD',
+                        'name': 'US Dollar',
+                        'symbol': '$',
+                        'rate': 1.0
+                    }
+                },
+                'last_updated': timezone.now().isoformat()
+            })
+
         # Get all active currencies
         currencies = Currency.objects.filter(is_active=True)
 
@@ -231,14 +382,40 @@ def get_exchange_rates(request):
             } for currency in currencies
         }
 
+        # Make sure USD is always included
+        if 'USD' not in rates:
+            rates['USD'] = {
+                'code': 'USD',
+                'name': 'US Dollar',
+                'symbol': '$',
+                'rate': 1.0
+            }
+
         return JsonResponse({
             'base_currency': 'USD',
             'rates': rates,
-            'last_updated': oldest_update.last_updated.isoformat() if oldest_update else None
+            'last_updated': oldest_update.last_updated.isoformat() if oldest_update else timezone.now().isoformat()
         })
 
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error in get_exchange_rates: {e}")
+
+        # Return default USD in case of error
+        return JsonResponse({
+            'base_currency': 'USD',
+            'rates': {
+                'USD': {
+                    'code': 'USD',
+                    'name': 'US Dollar',
+                    'symbol': '$',
+                    'rate': 1.0
+                }
+            },
+            'last_updated': timezone.now().isoformat(),
+            'error': str(e)
+        }, status=200)  # Still return 200 to not break the client
 
 
 def csrf_failure(request, reason=""):
