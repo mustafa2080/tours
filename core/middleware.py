@@ -216,15 +216,15 @@ class SecurityHeadersMiddleware(MiddlewareMixin):
         # Content Security Policy
         csp_directives = [
             "default-src 'self'",
-            "script-src 'self' https://cdn.jsdelivr.net https://www.paypal.com https://www.google.com https://www.gstatic.com 'unsafe-inline'",
-            "style-src 'self' https://cdn.jsdelivr.net https://fonts.googleapis.com 'unsafe-inline'",
+            "script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.paypal.com https://www.google.com https://www.gstatic.com 'unsafe-inline'",
+            "style-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com 'unsafe-inline'",
             "img-src 'self' data: https:",
-            "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net",
+            "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com",
             "connect-src 'self' https://www.paypal.com https://api.paypal.com",
             "frame-src 'self' https://www.paypal.com https://www.google.com",
             "object-src 'none'",
             "base-uri 'self'",
-            "form-action 'self'",
+            "form-action 'self'"
         ]
         response['Content-Security-Policy'] = "; ".join(csp_directives)
 
