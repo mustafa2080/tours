@@ -93,8 +93,8 @@ SECRET_KEY = config('SECRET_KEY', default=get_random_secret_key())
 DEBUG = config('DEBUG', default=False, cast=bool)
 
 # Allow hosts based on environment variable
-# For Railway deployment, we need to include 'healthcheck.railway.app'
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,healthcheck.railway.app', cast=Csv())
+# For Railway deployment, we need to include specific domains
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,healthcheck.railway.app,tourism-project-production.up.railway.app', cast=Csv())
 
 # Application definition
 INSTALLED_APPS = [
@@ -380,11 +380,14 @@ CORS_ALLOW_CREDENTIALS = True
 # In production, restrict CORS to specific origins
 CORS_ALLOW_ALL_ORIGINS = DEBUG  # Allow all origins in development only
 if not DEBUG:
-    CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='https://your-railway-app.up.railway.app', cast=Csv())
+    CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='https://tourism-project-production.up.railway.app', cast=Csv())
 
 # Site URL
 # In production, get the URL from environment variables
 SITE_URL = config('SITE_URL', default='http://127.0.0.1:8000')
+if not DEBUG:
+    # Override for Railway deployment
+    SITE_URL = 'https://tourism-project-production.up.railway.app'
 SITE_NAME = 'Tourism Website'
 
 
