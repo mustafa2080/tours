@@ -189,31 +189,17 @@ TEMPLATES = [
 WSGI_APPLICATION = 'tourism_project.wsgi.application'
 
 # Database configuration
-# Use PostgreSQL for Railway deployment, fallback to SQLite for local development
+# Always use SQLite as requested by the user
 import os
 
-# Get the DATABASE_URL from environment variables (provided by Railway)
-DATABASE_URL = config('DATABASE_URL', default=None)
-
-# Print database URL for debugging (will appear in logs)
-print(f"DATABASE_URL: {DATABASE_URL}")
-
-if DATABASE_URL:
-    # Use PostgreSQL in production (Railway)
-    db_config = dj_database_url.parse(DATABASE_URL)
-    print(f"Database config: {db_config}")
-    DATABASES = {
-        'default': db_config
+# Print database configuration for debugging
+print("Using SQLite database")
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }
-else:
-    # Use SQLite for local development
-    print("Using SQLite database")
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-        }
-    }
+}
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
