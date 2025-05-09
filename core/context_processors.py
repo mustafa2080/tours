@@ -41,20 +41,56 @@ def currency_processor(request):
     # Get current currency from session or default to settings
     current_currency_code = request.session.get('currency_code', settings.DEFAULT_CURRENCY_CODE)
 
+    # Create a dummy currency object if the database table doesn't exist yet
+    # This is useful during initial deployment when migrations haven't been applied
     try:
-        current_currency = Currency.objects.get(code=current_currency_code)
-    except Currency.DoesNotExist:
-        # Fallback to USD if selected currency doesn't exist
-        try:
-            current_currency = Currency.objects.get(code='USD')
-            request.session['currency_code'] = 'USD'
-        except Currency.DoesNotExist:
-            # Handle case where Currency table might be empty
-            current_currency = None
+        # Check if the Currency model is ready (table exists)
+        from django.db import connection
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1 FROM core_currency LIMIT 1")
+            table_exists = True
+    except Exception:
+        table_exists = False
 
-    # Get all active currencies for the dropdown
-    # Ensure we have the four required currencies: USD, EUR, GBP, EGP
-    currencies = Currency.objects.filter(code__in=['USD', 'EUR', 'GBP', 'EGP'], is_active=True)
+    if table_exists:
+        try:
+            current_currency = Currency.objects.get(code=current_currency_code)
+        except Currency.DoesNotExist:
+            # Fallback to USD if selected currency doesn't exist
+            try:
+                current_currency = Currency.objects.get(code='USD')
+                request.session['currency_code'] = 'USD'
+            except Currency.DoesNotExist:
+                # Handle case where Currency table might be empty
+                current_currency = None
+
+        # Get all active currencies for the dropdown
+        # Ensure we have the four required currencies: USD, EUR, GBP, EGP
+        currencies = Currency.objects.filter(code__in=['USD', 'EUR', 'GBP', 'EGP'], is_active=True)
+    else:
+        # Create dummy currency objects
+        class DummyCurrency:
+            def __init__(self, code, symbol, name):
+                self.code = code
+                self.symbol = symbol
+                self.name = name
+                self.exchange_rate = 1.0
+
+        current_currency = DummyCurrency(
+            code=current_currency_code,
+            symbol=settings.AVAILABLE_CURRENCIES.get(current_currency_code, {}).get('symbol', '$'),
+            name=settings.AVAILABLE_CURRENCIES.get(current_currency_code, {}).get('name', 'US Dollar')
+        )
+
+        # Create dummy currencies list
+        currencies = []
+        for code in ['USD', 'EUR', 'GBP', 'EGP']:
+            if code in settings.AVAILABLE_CURRENCIES:
+                currencies.append(DummyCurrency(
+                    code=code,
+                    symbol=settings.AVAILABLE_CURRENCIES[code]['symbol'],
+                    name=settings.AVAILABLE_CURRENCIES[code]['name']
+                ))
 
     return {
         'DEFAULT_CURRENCY_CODE': settings.DEFAULT_CURRENCY_CODE,
