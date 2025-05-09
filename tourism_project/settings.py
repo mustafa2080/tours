@@ -89,20 +89,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY', default=get_random_secret_key())
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=True, cast=bool)
+# DEBUG is set based on environment variable
+DEBUG = config('DEBUG', default=False, cast=bool)
 
-# Allow all hosts in development, but use ALLOWED_HOSTS env var in production
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
-
-# Check if running on Render.com
-ON_RENDER = config('RENDER', default=False, cast=bool)
-
-# Import Render-specific settings if running on Render
-if ON_RENDER:
-    try:
-        from .render import *
-    except ImportError:
-        pass
+# Allow hosts based on environment variable
+# For Railway deployment, we need to include 'healthcheck.railway.app'
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,healthcheck.railway.app', cast=Csv())
 
 # Application definition
 INSTALLED_APPS = [
@@ -197,16 +189,25 @@ TEMPLATES = [
 WSGI_APPLICATION = 'tourism_project.wsgi.application'
 
 # Database configuration
-# Use DATABASE_URL environment variable if available, otherwise use SQLite
+# Use PostgreSQL for Railway deployment, fallback to SQLite for local development
 import os
-import dj_database_url
 
-DATABASES = {
-    'default': dj_database_url.config(
-        default='sqlite:///' + os.path.join(BASE_DIR, 'db.sqlite3'),
-        conn_max_age=600
-    )
-}
+# Get the DATABASE_URL from environment variables (provided by Railway)
+DATABASE_URL = config('DATABASE_URL', default=None)
+
+if DATABASE_URL:
+    # Use PostgreSQL in production (Railway)
+    DATABASES = {
+        'default': dj_database_url.parse(DATABASE_URL)
+    }
+else:
+    # Use SQLite for local development
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        }
+    }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -257,8 +258,8 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Whitenoise for static files in production
-if not DEBUG:
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# Enable in production, disabled for local development
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage' if not DEBUG else 'django.contrib.staticfiles.storage.StaticFilesStorage'
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -328,15 +329,16 @@ CRISPY_ALLOWED_TEMPLATE_PACKS = "tailwind"
 CRISPY_TEMPLATE_PACK = "tailwind"
 
 # Email settings
+# Use SMTP in production, console backend for local development
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST = config('EMAIL_HOST', default='')
+    EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
     EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+    EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
     EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
     EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
-    EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
 
 # Django REST Framework settings
 REST_FRAMEWORK = {
@@ -373,13 +375,17 @@ REST_FRAMEWORK = {
     'DEFAULT_CONTENT_NEGOTIATION_CLASS': 'rest_framework.negotiation.DefaultContentNegotiation',
 }
 
-# CORS settings - Allow all origins for development
+# CORS settings
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_ORIGINS = True
+# In production, restrict CORS to specific origins
+CORS_ALLOW_ALL_ORIGINS = DEBUG  # Allow all origins in development only
+if not DEBUG:
+    CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='https://your-railway-app.up.railway.app', cast=Csv())
 
-# Site URL for building absolute URLs
+# Site URL
+# In production, get the URL from environment variables
 SITE_URL = config('SITE_URL', default='http://127.0.0.1:8000')
-SITE_NAME = config('SITE_NAME', default='Tourism Website')
+SITE_NAME = 'Tourism Website'
 
 
 # Currency settings
@@ -396,11 +402,10 @@ AVAILABLE_CURRENCIES = {
     'EGP': {'symbol': 'E£', 'name': 'Egyptian Pound'},
 }
 
-# PayPal settings
-# These settings are loaded from environment variables for security
-PAYPAL_MODE = config('PAYPAL_MODE', default='sandbox')  # sandbox or live
-PAYPAL_CLIENT_ID = config('PAYPAL_CLIENT_ID', default='')
-PAYPAL_SECRET = config('PAYPAL_SECRET', default='')
+# PayPal settings for local development
+PAYPAL_MODE = 'sandbox'  # Always use sandbox for local development
+PAYPAL_CLIENT_ID = ''  # Add your sandbox client ID here for testing
+PAYPAL_SECRET = ''  # Add your sandbox secret here for testing
 
 # Use SITE_URL for building PayPal URLs
 PAYPAL_RETURN_URL = f"{SITE_URL}/en/payments/confirm/"
@@ -409,25 +414,24 @@ PAYPAL_CANCEL_URL = f"{SITE_URL}/en/payments/cancel/"
 # Enable test mode for offline development
 # When True, PayPal integration will use fake responses instead of making real API calls
 # This is useful for development without internet connection or when PayPal sandbox is down
-PAYPAL_TEST_MODE = config('PAYPAL_TEST_MODE', default=False, cast=bool)
-
-# Validate that required settings are provided in production
-if not DEBUG and not PAYPAL_TEST_MODE:
-    if not PAYPAL_CLIENT_ID or not PAYPAL_SECRET:
-        import warnings
-        warnings.warn("PayPal credentials are missing. Payment functionality will not work correctly.")
+PAYPAL_TEST_MODE = True  # Always use test mode for local development
 
 # Celery settings
-CELERY_BROKER_URL = config('CELERY_BROKER_URL', default='redis://localhost:6379/0')
-CELERY_RESULT_BACKEND = config('CELERY_RESULT_BACKEND', default='redis://localhost:6379/0')
+# In production, use environment variables for broker URL
+# In development, use memory broker
+CELERY_TASK_ALWAYS_EAGER = DEBUG  # Run tasks synchronously in development
+CELERY_TASK_EAGER_PROPAGATES = DEBUG
+CELERY_BROKER_URL = config('CELERY_BROKER_URL', default='memory://')
+CELERY_RESULT_BACKEND = config('CELERY_RESULT_BACKEND', default='cache')
+CELERY_CACHE_BACKEND = 'memory' if DEBUG else 'default'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 
-# Chatbot settings
-OPENAI_API_KEY = config('OPENAI_API_KEY', default='')
-DIALOGFLOW_PROJECT_ID = config('DIALOGFLOW_PROJECT_ID', default='')
+# Chatbot settings for local development
+OPENAI_API_KEY = ''  # Add your API key here for testing
+DIALOGFLOW_PROJECT_ID = ''  # Add your project ID here for testing
 
 # CKEditor 5 settings
 CKEDITOR_5_CONFIGS = {
@@ -448,49 +452,27 @@ CKEDITOR_5_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
 CKEDITOR_5_UPLOAD_PATH = 'uploads/ckeditor/'
 
 # Cache settings
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'unique-snowflake',
-        'TIMEOUT': 300,  # 5 minutes
-        'OPTIONS': {
-            'MAX_ENTRIES': 2000,  # Increased from 1000
-            'CULL_FREQUENCY': 3,  # Fraction of entries to cull when max is reached
-        },
-    },
-    'api': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'api-cache',
-        'TIMEOUT': 60,  # 1 minute for API responses
-        'OPTIONS': {
-            'MAX_ENTRIES': 3000,  # Increased from 2000
-            'CULL_FREQUENCY': 2,
-        },
-    },
-    'template_fragments': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'template-fragments',
-        'TIMEOUT': 600,  # 10 minutes for template fragments
-        'OPTIONS': {
-            'MAX_ENTRIES': 1000,
-        },
-    },
-    'static': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'static-files',
-        'TIMEOUT': 86400,  # 24 hours for static files
-        'OPTIONS': {
-            'MAX_ENTRIES': 1000,
-        },
+# Use memory cache in production, dummy cache in development
+if DEBUG:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        }
     }
-}
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'unique-snowflake',
+        }
+    }
 
 # Cache middleware
 CACHE_MIDDLEWARE_ALIAS = 'default'
 CACHE_MIDDLEWARE_SECONDS = 600
 CACHE_MIDDLEWARE_KEY_PREFIX = 'tourism'
 
-# Logging for debugging
+# Logging for local development
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -502,7 +484,11 @@ LOGGING = {
     'loggers': {
         'django': {
             'handlers': ['console'],
-            'level': 'INFO',
+            'level': 'DEBUG',  # Set to DEBUG for more detailed logs
+        },
+        'django.db.backends': {
+            'handlers': ['console'],
+            'level': 'INFO',  # Set to DEBUG to see all database queries
         },
     },
 }
@@ -518,15 +504,15 @@ CSRF_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_FAILURE_VIEW = 'core.views.csrf_failure'  # Custom CSRF failure view
 
-# Security settings for production
-# Temporarily disable security features to debug 500 error
-SECURE_SSL_REDIRECT = False
-SESSION_COOKIE_SECURE = False
-CSRF_COOKIE_SECURE = False
-SECURE_PROXY_SSL_HEADER = None
-SECURE_HSTS_SECONDS = 0
-SECURE_HSTS_INCLUDE_SUBDOMAINS = False
-SECURE_HSTS_PRELOAD = False
+# Security settings
+# Enable security settings in production, disable in development
+SECURE_SSL_REDIRECT = not DEBUG
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https') if not DEBUG else None
+SECURE_HSTS_SECONDS = 31536000 if not DEBUG else 0  # 1 year
+SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
+SECURE_HSTS_PRELOAD = not DEBUG
 
 # Jazzmin Settings
 JAZZMIN_SETTINGS = {
