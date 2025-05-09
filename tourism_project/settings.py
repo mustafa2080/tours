@@ -146,8 +146,12 @@ MIDDLEWARE = [
     # Compression middleware
     'django.middleware.gzip.GZipMiddleware',
     'django.middleware.http.ConditionalGetMiddleware',
+    # CSRF Debug middleware - add before CsrfViewMiddleware
+    'core.middleware.csrf_middleware.CSRFDebugMiddleware',
     # Security middleware
     'django.middleware.csrf.CsrfViewMiddleware',
+    # CSRF Fix middleware - add after CsrfViewMiddleware
+    'core.middleware.csrf_middleware.CSRFFixMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'allauth.account.middleware.AccountMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -502,6 +506,9 @@ CSRF_USE_SESSIONS = False  # Changed to False to use cookies instead of sessions
 CSRF_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_FAILURE_VIEW = 'core.views.csrf_failure'  # Custom CSRF failure view
+CSRF_COOKIE_NAME = 'csrftoken'  # Default name, but explicitly set for clarity
+CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'  # Default header name
+CSRF_TRUSTED_ORIGINS = ['https://tourism-project-production.up.railway.app']  # Add your domain here
 
 # Security settings
 # Enable security settings in production, disable in development

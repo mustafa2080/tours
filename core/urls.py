@@ -7,6 +7,7 @@ from .views import (
     subscribe_newsletter, set_currency, get_exchange_rates,
     performance_dashboard, healthcheck
 )
+from . import views
 
 app_name = 'core'
 
@@ -28,4 +29,7 @@ urlpatterns = [
 
     # Health check
     path('health/', healthcheck, name='healthcheck'),
+
+    # CSRF token
+    path('csrf/', views.csrf_token_view, name='csrf_token'),
 ]
