@@ -218,8 +218,7 @@
 {% endblock extra_css %}
 
 {% block extra_js %}
-<!-- Parallax.js for background effects (only included if needed) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/parallax.js/1.5.0/parallax.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<!-- Parallax effects are handled by simpleParallax.js loaded in base.html -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Smooth scrolling for anchor links (consistent with base.html loader)
@@ -255,16 +254,29 @@
         });
         animatedElements.forEach(element => observer.observe(element));
 
-        // Parallax effect for CTA section (if Parallax.js is loaded)
-        if (typeof Parallax !== 'undefined') {
-            const scene = document.querySelector('[data-parallax]');
-            if (scene) {
-                new Parallax(scene, {
-                    relativeInput: false,
-                    clipRelativeInput: false,
-                    hoverOnly: false,
-                    selector: '.bg-cover',
-                    pointerEvents: true
+        // Initialize simple-parallax-js for background elements
+        if (typeof simpleParallax !== 'undefined') {
+            // Find all elements with data-parallax attribute
+            const parallaxElements = document.querySelectorAll('[data-parallax]');
+            if (parallaxElements.length > 0) {
+                // Initialize simpleParallax on these elements
+                new simpleParallax(parallaxElements, {
+                    delay: 0.6,
+                    orientation: 'up',
+                    scale: 1.3,
+                    overflow: true,
+                    transition: 'cubic-bezier(0,0,0,1)'
+                });
+            }
+
+            // Also apply to hero section backgrounds
+            const heroBackgrounds = document.querySelectorAll('.absolute.inset-0.h-full.w-full');
+            if (heroBackgrounds.length > 0) {
+                new simpleParallax(heroBackgrounds, {
+                    delay: 0.4,
+                    orientation: 'down',
+                    scale: 1.2,
+                    overflow: true
                 });
             }
         }
