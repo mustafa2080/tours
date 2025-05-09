@@ -33,13 +33,28 @@ class SafeSignupView(SignupView):
 
     def dispatch(self, request, *args, **kwargs):
         try:
-            # Try to use the original SignupView
+            # Check if the Site table exists
+            from django.db import connection
+            with connection.cursor() as cursor:
+                try:
+                    cursor.execute("SELECT 1 FROM django_site LIMIT 1")
+                    site_table_exists = True
+                except Exception:
+                    site_table_exists = False
+
+            if not site_table_exists:
+                # If the site table doesn't exist, show a message and redirect
+                messages.info(request, _("The site is still being set up. You'll be able to sign up soon."))
+                return redirect('core:home')
+
+            # If table exists, continue with normal flow
             return super().dispatch(request, *args, **kwargs)
+
         except DatabaseError as e:
             # If there's a database error (like missing django_site table),
             # render a simple signup form
             if 'django_site' in str(e):
-                messages.error(request, _("The site is still being set up. Please try again later."))
+                messages.info(request, _("The site is still being set up. You'll be able to sign up soon."))
                 return redirect('core:home')
             # For other database errors, re-raise
             raise
@@ -55,13 +70,28 @@ class SafeLoginView(LoginView):
 
     def dispatch(self, request, *args, **kwargs):
         try:
-            # Try to use the original LoginView
+            # Check if the Site table exists
+            from django.db import connection
+            with connection.cursor() as cursor:
+                try:
+                    cursor.execute("SELECT 1 FROM django_site LIMIT 1")
+                    site_table_exists = True
+                except Exception:
+                    site_table_exists = False
+
+            if not site_table_exists:
+                # If the site table doesn't exist, show a message and redirect
+                messages.info(request, _("The site is still being set up. You'll be able to log in soon."))
+                return redirect('core:home')
+
+            # If table exists, continue with normal flow
             return super().dispatch(request, *args, **kwargs)
+
         except DatabaseError as e:
             # If there's a database error (like missing django_site table),
             # render a simple login form
             if 'django_site' in str(e):
-                messages.error(request, _("The site is still being set up. Please try again later."))
+                messages.info(request, _("The site is still being set up. You'll be able to log in soon."))
                 return redirect('core:home')
             # For other database errors, re-raise
             raise

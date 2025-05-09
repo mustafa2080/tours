@@ -9,8 +9,8 @@
     {# Tailwind CSS CDN #}
     <link rel="stylesheet" href="{% static 'css/output.css' %}">
 
-    {# Alpine.js - Moved to head and removed defer #}
-    <script src="{% static 'js/vendor/alpine.min.js' %}"></script>
+    {# Alpine.js - Added defer attribute #}
+    <script src="{% static 'js/vendor/alpine.min.js' %}" defer></script>
 
     {# Chart.js - for review charts - load asynchronously #}
     <script src="https://cdn.jsdelivr.net/npm/chart.js" async></script>
