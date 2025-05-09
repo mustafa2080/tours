@@ -89,8 +89,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY', default=get_random_secret_key())
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# DEBUG is set based on environment variable
-DEBUG = config('DEBUG', default=False, cast=bool)
+# Temporarily enable debug mode to see error details
+DEBUG = True  # Temporarily set to True for troubleshooting
 
 # Allow hosts based on environment variable
 # For Railway deployment, we need to include specific domains
@@ -195,13 +195,19 @@ import os
 # Get the DATABASE_URL from environment variables (provided by Railway)
 DATABASE_URL = config('DATABASE_URL', default=None)
 
+# Print database URL for debugging (will appear in logs)
+print(f"DATABASE_URL: {DATABASE_URL}")
+
 if DATABASE_URL:
     # Use PostgreSQL in production (Railway)
+    db_config = dj_database_url.parse(DATABASE_URL)
+    print(f"Database config: {db_config}")
     DATABASES = {
-        'default': dj_database_url.parse(DATABASE_URL)
+        'default': db_config
     }
 else:
     # Use SQLite for local development
+    print("Using SQLite database")
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
