@@ -22,18 +22,81 @@ class HomeView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Check if Tour model has is_featured/is_popular fields, adjust if necessary
-        context['featured_tours'] = Tour.objects.filter(is_active=True, is_featured=True)[:6]
-        context['popular_tours'] = Tour.objects.filter(is_active=True).order_by('-view_count')[:6] # Assuming popularity based on views or rating
-        context['tour_categories'] = TourCategory.objects.filter(is_active=True)[:6] # Use the imported Category (aliased or direct)
-        context['latest_posts'] = Post.objects.filter(is_published=True).order_by('-published_at')[:3] # Use is_published and published_at
-        context['featured_destinations'] = Destination.objects.filter(is_active=True, is_featured=True)[:6]
 
-        # Get top reviews for testimonials section
-        context['testimonials'] = Review.objects.filter(
-            is_approved=True,
-            rating__gte=4  # Only show reviews with 4 or 5 stars
-        ).select_related('user', 'tour').order_by('-created_at')[:3]
+        # Check if database tables exist before querying
+        try:
+            # Check if the Tour table exists
+            from django.db import connection
+            with connection.cursor() as cursor:
+                try:
+                    cursor.execute("SELECT 1 FROM tour_tour LIMIT 1")
+                    tour_table_exists = True
+                except Exception:
+                    tour_table_exists = False
+
+            # Only query Tour model if the table exists
+            if tour_table_exists:
+                context['featured_tours'] = Tour.objects.filter(is_active=True, is_featured=True)[:6]
+                context['popular_tours'] = Tour.objects.filter(is_active=True).order_by('-view_count')[:6]
+
+                # Get top reviews for testimonials section
+                context['testimonials'] = Review.objects.filter(
+                    is_approved=True,
+                    rating__gte=4  # Only show reviews with 4 or 5 stars
+                ).select_related('user', 'tour').order_by('-created_at')[:3]
+            else:
+                context['featured_tours'] = []
+                context['popular_tours'] = []
+                context['testimonials'] = []
+
+            # Check if the Category table exists
+            try:
+                cursor.execute("SELECT 1 FROM tour_category LIMIT 1")
+                category_table_exists = True
+            except Exception:
+                category_table_exists = False
+
+            if category_table_exists:
+                context['tour_categories'] = TourCategory.objects.filter(is_active=True)[:6]
+            else:
+                context['tour_categories'] = []
+
+            # Check if the Destination table exists
+            try:
+                cursor.execute("SELECT 1 FROM tour_destination LIMIT 1")
+                destination_table_exists = True
+            except Exception:
+                destination_table_exists = False
+
+            if destination_table_exists:
+                context['featured_destinations'] = Destination.objects.filter(is_active=True, is_featured=True)[:6]
+            else:
+                context['featured_destinations'] = []
+
+            # Check if the Post table exists
+            try:
+                cursor.execute("SELECT 1 FROM blog_post LIMIT 1")
+                post_table_exists = True
+            except Exception:
+                post_table_exists = False
+
+            if post_table_exists:
+                context['latest_posts'] = Post.objects.filter(is_published=True).order_by('-published_at')[:3]
+            else:
+                context['latest_posts'] = []
+
+        except Exception as e:
+            # If any error occurs, set empty lists for all context variables
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error in HomeView: {e}")
+
+            context['featured_tours'] = []
+            context['popular_tours'] = []
+            context['tour_categories'] = []
+            context['latest_posts'] = []
+            context['featured_destinations'] = []
+            context['testimonials'] = []
 
         return context
 
