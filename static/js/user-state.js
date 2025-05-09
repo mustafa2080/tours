@@ -10,6 +10,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Store authentication state in sessionStorage
     if (userIsAuthenticated) {
         sessionStorage.setItem('userAuthenticated', 'true');
+    } else {
+        // Make sure to clear the authentication state if not authenticated
+        sessionStorage.removeItem('userAuthenticated');
     }
 
     // Check for authentication state in sessionStorage
@@ -17,6 +20,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Function to update UI based on authentication state
     function updateUIForAuthenticatedUser(isAuthenticated) {
+        console.log('Updating UI for authentication state:', isAuthenticated);
+
         // Get all elements that should be shown/hidden based on auth state
         const authOnlyElements = document.querySelectorAll('[data-auth-only]');
         const guestOnlyElements = document.querySelectorAll('[data-guest-only]');
@@ -24,10 +29,12 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update visibility
         authOnlyElements.forEach(element => {
             element.style.display = isAuthenticated ? '' : 'none';
+            console.log('Auth-only element visibility updated:', element, element.style.display);
         });
 
         guestOnlyElements.forEach(element => {
             element.style.display = isAuthenticated ? 'none' : '';
+            console.log('Guest-only element visibility updated:', element, element.style.display);
         });
 
         // Update navigation links
@@ -41,6 +48,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (isDashboardLink) {
                 link.style.display = isAuthenticated ? '' : 'none';
+                console.log('Dashboard link visibility updated:', link, link.style.display);
             }
         });
 
@@ -50,11 +58,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
         loginButtons.forEach(btn => {
             btn.style.display = isAuthenticated ? 'none' : '';
+            console.log('Login button visibility updated:', btn, btn.style.display);
         });
 
         logoutButtons.forEach(btn => {
             btn.style.display = isAuthenticated ? '' : 'none';
+            console.log('Logout button visibility updated:', btn, btn.style.display);
         });
+
+        // Make sure the login/signup container is visible
+        const authContainer = document.querySelector('.flex.flex-col.sm\\:flex-row.gap-2.lg\\:gap-3');
+        if (authContainer && !isAuthenticated) {
+            authContainer.style.display = '';
+            console.log('Auth container visibility forced to visible:', authContainer);
+        }
     }
 
     // Apply stored authentication state if available
@@ -209,4 +226,36 @@ document.addEventListener('DOMContentLoaded', function() {
             document.body.classList.add('user-authenticated');
         }
     }
+
+    // Final check to ensure login/signup buttons are visible when not authenticated
+    setTimeout(() => {
+        const userIsAuthenticated = document.body.classList.contains('user-authenticated') ||
+                                   document.querySelector('[data-user-authenticated="true"]') !== null ||
+                                   sessionStorage.getItem('userAuthenticated') === 'true';
+
+        if (!userIsAuthenticated) {
+            console.log('Final check: User is not authenticated, ensuring login/signup buttons are visible');
+
+            // Make sure the login/signup container is visible
+            const authContainer = document.querySelector('.flex.flex-col.sm\\:flex-row.gap-2.lg\\:gap-3');
+            if (authContainer) {
+                authContainer.style.display = '';
+                console.log('Auth container visibility forced to visible in final check');
+
+                // Make sure the login button is visible
+                const loginButton = document.querySelector('[data-login-btn]');
+                if (loginButton) {
+                    loginButton.style.display = '';
+                    console.log('Login button visibility forced to visible in final check');
+                }
+
+                // Make sure the signup button is visible
+                const signupButton = document.querySelector('[data-guest-only]');
+                if (signupButton) {
+                    signupButton.style.display = '';
+                    console.log('Signup button visibility forced to visible in final check');
+                }
+            }
+        }
+    }, 500);
 });
