@@ -137,12 +137,12 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',
     # Session middleware must come before CSRF middleware
     'django.contrib.sessions.middleware.SessionMiddleware',
-    # Cache middleware
-    'django.middleware.cache.UpdateCacheMiddleware',
+    # Cache middleware - temporarily disabled for initial deployment
+    # 'django.middleware.cache.UpdateCacheMiddleware',
     'django.middleware.locale.LocaleMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.cache.FetchFromCacheMiddleware',
+    # 'django.middleware.cache.FetchFromCacheMiddleware',
     # Compression middleware
     'django.middleware.gzip.GZipMiddleware',
     'django.middleware.http.ConditionalGetMiddleware',
@@ -153,16 +153,16 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     # Performance middleware removed
-    # API performance middleware
-    'core.middleware.APIPerformanceMiddleware',
-    'core.middleware.APIRequestThrottleMiddleware',
-    'core.middleware.APIResponseCompressionMiddleware',
+    # API performance middleware - temporarily disabled for initial deployment
+    # 'core.middleware.APIPerformanceMiddleware',
+    # 'core.middleware.APIRequestThrottleMiddleware',
+    # 'core.middleware.APIResponseCompressionMiddleware',
     # Login speedup middleware
-    'core.middleware.LoginSpeedupMiddleware',
-    # Analytics middleware
-    'analytics.middleware.AnalyticsMiddleware',
+    # 'core.middleware.LoginSpeedupMiddleware',
+    # Analytics middleware - temporarily disabled for initial deployment
+    # 'analytics.middleware.AnalyticsMiddleware',
     # Error handling middleware
-    'core.middleware.SocialAccountErrorMiddleware',
+    # 'core.middleware.SocialAccountErrorMiddleware',
 ]
 
 ROOT_URLCONF = 'tourism_project.urls'
