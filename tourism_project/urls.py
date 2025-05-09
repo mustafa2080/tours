@@ -8,6 +8,7 @@ from django.conf.urls.static import static
 from django.conf.urls.i18n import i18n_patterns
 from django.views.i18n import set_language
 from core.views import healthcheck
+from users.views import SafeSignupView, SafeLoginView
 
 urlpatterns = [
     # Health check - must be outside i18n_patterns to avoid language prefix
@@ -41,7 +42,14 @@ urlpatterns += i18n_patterns(
     path('reviews/', include('reviews.urls')), # Re-added
     path('payments/', include('payments.urls')),
     path('chat/', include('chatbots.urls')),
+
+    # Custom auth views that handle missing django_site table
+    path('accounts/signup/', SafeSignupView.as_view(), name='account_signup'),
+    path('accounts/login/', SafeLoginView.as_view(), name='account_login'),
+
+    # Include the rest of allauth URLs
     path('accounts/', include('allauth.urls')),
+
     path('users/', include('users.urls', namespace='users')),
     path('analytics/', include('analytics.urls', namespace='analytics')),
     prefix_default_language=True,

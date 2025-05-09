@@ -8,9 +8,10 @@ echo "DEBUG: $DEBUG"
 
 # Apply database migrations with verbose output
 echo "Applying database migrations..."
-# First, migrate the auth and contenttypes apps
+# First, migrate the auth, contenttypes, and sites apps
 python manage.py migrate auth --verbosity 2
 python manage.py migrate contenttypes --verbosity 2
+python manage.py migrate sites --verbosity 2
 # Then migrate the core app
 python manage.py migrate core --verbosity 2
 # Then migrate the users app
@@ -29,6 +30,7 @@ python manage.py inspectdb | grep -i "class SiteVisit" || echo "SiteVisit model 
 
 # Set up initial data
 echo "Setting up initial data..."
+python manage.py setup_site
 python manage.py setup_currencies
 python manage.py setup_analytics
 python manage.py setup_tours
