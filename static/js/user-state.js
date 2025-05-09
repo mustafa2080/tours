@@ -22,6 +22,20 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateUIForAuthenticatedUser(isAuthenticated) {
         console.log('Updating UI for authentication state:', isAuthenticated);
 
+        // Check if we have a setup message in the page
+        const setupMessageExists = document.querySelector('.alert-info') !== null &&
+                                  document.querySelector('.alert-info').textContent.includes('still being set up');
+
+        // If we have a setup message, force non-authenticated state
+        if (setupMessageExists) {
+            console.log('Setup message detected, forcing non-authenticated UI state');
+            isAuthenticated = false;
+            sessionStorage.removeItem('userAuthenticated');
+            if (document.body.classList.contains('user-authenticated')) {
+                document.body.classList.remove('user-authenticated');
+            }
+        }
+
         // Get all elements that should be shown/hidden based on auth state
         const authOnlyElements = document.querySelectorAll('[data-auth-only]');
         const guestOnlyElements = document.querySelectorAll('[data-guest-only]');
@@ -56,19 +70,33 @@ document.addEventListener('DOMContentLoaded', function() {
         const loginButtons = document.querySelectorAll('[data-login-btn]');
         const logoutButtons = document.querySelectorAll('[data-logout-btn]');
 
-        loginButtons.forEach(btn => {
-            btn.style.display = isAuthenticated ? 'none' : '';
-            console.log('Login button visibility updated:', btn, btn.style.display);
-        });
+        // If we have a setup message, always show login buttons
+        if (setupMessageExists) {
+            loginButtons.forEach(btn => {
+                btn.style.display = '';
+                console.log('Login button forced visible due to setup message:', btn);
+            });
 
-        logoutButtons.forEach(btn => {
-            btn.style.display = isAuthenticated ? '' : 'none';
-            console.log('Logout button visibility updated:', btn, btn.style.display);
-        });
+            logoutButtons.forEach(btn => {
+                btn.style.display = 'none';
+                console.log('Logout button forced hidden due to setup message:', btn);
+            });
+        } else {
+            // Normal behavior
+            loginButtons.forEach(btn => {
+                btn.style.display = isAuthenticated ? 'none' : '';
+                console.log('Login button visibility updated:', btn, btn.style.display);
+            });
+
+            logoutButtons.forEach(btn => {
+                btn.style.display = isAuthenticated ? '' : 'none';
+                console.log('Logout button visibility updated:', btn, btn.style.display);
+            });
+        }
 
         // Make sure the login/signup container is visible
         const authContainer = document.querySelector('.flex.flex-col.sm\\:flex-row.gap-2.lg\\:gap-3');
-        if (authContainer && !isAuthenticated) {
+        if (authContainer && (!isAuthenticated || setupMessageExists)) {
             authContainer.style.display = '';
             console.log('Auth container visibility forced to visible:', authContainer);
         }
@@ -157,8 +185,39 @@ document.addEventListener('DOMContentLoaded', function() {
     if (sessionStorage.getItem('loginAttempted') === 'true') {
         console.log('Login was attempted, checking if we are on a post-login page');
 
-        // If we're not on the login page anymore, assume login was successful
-        if (!window.location.href.includes('/login') && !window.location.href.includes('/accounts/login')) {
+        // Check if we have a setup message in the page
+        const setupMessageExists = document.querySelector('.alert-info') !== null &&
+                                  document.querySelector('.alert-info').textContent.includes('still being set up');
+
+        // If we have a setup message, login was not successful
+        if (setupMessageExists) {
+            console.log('Setup message detected, login not successful');
+            sessionStorage.removeItem('loginAttempted');
+            sessionStorage.removeItem('userAuthenticated');
+
+            // Make sure the login/signup container is visible
+            const authContainer = document.querySelector('.flex.flex-col.sm\\:flex-row.gap-2.lg\\:gap-3');
+            if (authContainer) {
+                authContainer.style.display = '';
+                console.log('Auth container visibility forced to visible due to setup message');
+
+                // Make sure the login button is visible
+                const loginButton = document.querySelector('[data-login-btn]');
+                if (loginButton) {
+                    loginButton.style.display = '';
+                    console.log('Login button visibility forced to visible due to setup message');
+                }
+
+                // Make sure the signup button is visible
+                const signupButton = document.querySelector('[data-guest-only]');
+                if (signupButton) {
+                    signupButton.style.display = '';
+                    console.log('Signup button visibility forced to visible due to setup message');
+                }
+            }
+        }
+        // If we're not on the login page anymore and no setup message, assume login was successful
+        else if (!window.location.href.includes('/login') && !window.location.href.includes('/accounts/login')) {
             console.log('Not on login page, assuming successful login');
             sessionStorage.removeItem('loginAttempted');
             sessionStorage.setItem('userAuthenticated', 'true');
@@ -227,8 +286,53 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Check if we have a setup message in the page
+    const setupMessageExists = document.querySelector('.alert-info') !== null &&
+                              document.querySelector('.alert-info').textContent.includes('still being set up');
+
+    // If we have a setup message, make sure we're not falsely authenticated
+    if (setupMessageExists) {
+        console.log('Setup message detected, ensuring user is not falsely authenticated');
+        sessionStorage.removeItem('userAuthenticated');
+        if (document.body.classList.contains('user-authenticated')) {
+            document.body.classList.remove('user-authenticated');
+        }
+    }
+
     // Final check to ensure login/signup buttons are visible when not authenticated
     setTimeout(() => {
+        // Check again for setup message
+        const setupMessageExists = document.querySelector('.alert-info') !== null &&
+                                  document.querySelector('.alert-info').textContent.includes('still being set up');
+
+        // If we have a setup message, force buttons to be visible
+        if (setupMessageExists) {
+            console.log('Setup message detected in final check, forcing buttons to be visible');
+
+            // Make sure the login/signup container is visible
+            const authContainer = document.querySelector('.flex.flex-col.sm\\:flex-row.gap-2.lg\\:gap-3');
+            if (authContainer) {
+                authContainer.style.display = '';
+                console.log('Auth container visibility forced to visible due to setup message');
+
+                // Make sure the login button is visible
+                const loginButton = document.querySelector('[data-login-btn]');
+                if (loginButton) {
+                    loginButton.style.display = '';
+                    console.log('Login button visibility forced to visible due to setup message');
+                }
+
+                // Make sure the signup button is visible
+                const signupButton = document.querySelector('[data-guest-only]');
+                if (signupButton) {
+                    signupButton.style.display = '';
+                    console.log('Signup button visibility forced to visible due to setup message');
+                }
+            }
+            return;
+        }
+
+        // Normal check for non-authenticated users
         const userIsAuthenticated = document.body.classList.contains('user-authenticated') ||
                                    document.querySelector('[data-user-authenticated="true"]') !== null ||
                                    sessionStorage.getItem('userAuthenticated') === 'true';

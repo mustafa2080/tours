@@ -4,6 +4,7 @@ from django.views.generic import TemplateView, UpdateView, ListView, DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.utils.translation import gettext_lazy as _
+from django.utils.safestring import mark_safe
 from django.utils import timezone
 from django.db import DatabaseError
 
@@ -33,21 +34,31 @@ class SafeSignupView(SignupView):
 
     def dispatch(self, request, *args, **kwargs):
         try:
-            # Check if the Site table exists
+            # Check if the Site table exists and has data
             from django.db import connection
             with connection.cursor() as cursor:
                 try:
-                    cursor.execute("SELECT 1 FROM django_site LIMIT 1")
-                    site_table_exists = True
+                    cursor.execute("SELECT COUNT(*) FROM django_site")
+                    row = cursor.fetchone()
+                    site_table_has_data = row[0] > 0 if row else False
                 except Exception:
-                    site_table_exists = False
+                    site_table_has_data = False
 
-            if not site_table_exists:
-                # If the site table doesn't exist, show a message and redirect
+            if not site_table_has_data:
+                # If the site table doesn't exist or has no data, show a message and redirect
                 messages.info(request, _("The site is still being set up. You'll be able to sign up soon."))
+                # Add a JavaScript snippet to ensure buttons remain visible
+                messages.info(request, mark_safe(
+                    '<script>setTimeout(function() { '
+                    'document.querySelectorAll("[data-login-btn], [data-guest-only]").forEach(function(el) { '
+                    'el.style.display = ""; }); '
+                    'var container = document.querySelector(".flex.flex-col.sm\\\\:flex-row.gap-2.lg\\\\:gap-3"); '
+                    'if (container) container.style.display = ""; '
+                    '}, 100);</script>'
+                ))
                 return redirect('core:home')
 
-            # If table exists, continue with normal flow
+            # If table exists and has data, continue with normal flow
             return super().dispatch(request, *args, **kwargs)
 
         except DatabaseError as e:
@@ -55,6 +66,15 @@ class SafeSignupView(SignupView):
             # render a simple signup form
             if 'django_site' in str(e):
                 messages.info(request, _("The site is still being set up. You'll be able to sign up soon."))
+                # Add a JavaScript snippet to ensure buttons remain visible
+                messages.info(request, mark_safe(
+                    '<script>setTimeout(function() { '
+                    'document.querySelectorAll("[data-login-btn], [data-guest-only]").forEach(function(el) { '
+                    'el.style.display = ""; }); '
+                    'var container = document.querySelector(".flex.flex-col.sm\\\\:flex-row.gap-2.lg\\\\:gap-3"); '
+                    'if (container) container.style.display = ""; '
+                    '}, 100);</script>'
+                ))
                 return redirect('core:home')
             # For other database errors, re-raise
             raise
@@ -70,21 +90,31 @@ class SafeLoginView(LoginView):
 
     def dispatch(self, request, *args, **kwargs):
         try:
-            # Check if the Site table exists
+            # Check if the Site table exists and has data
             from django.db import connection
             with connection.cursor() as cursor:
                 try:
-                    cursor.execute("SELECT 1 FROM django_site LIMIT 1")
-                    site_table_exists = True
+                    cursor.execute("SELECT COUNT(*) FROM django_site")
+                    row = cursor.fetchone()
+                    site_table_has_data = row[0] > 0 if row else False
                 except Exception:
-                    site_table_exists = False
+                    site_table_has_data = False
 
-            if not site_table_exists:
-                # If the site table doesn't exist, show a message and redirect
+            if not site_table_has_data:
+                # If the site table doesn't exist or has no data, show a message and redirect
                 messages.info(request, _("The site is still being set up. You'll be able to log in soon."))
+                # Add a JavaScript snippet to ensure buttons remain visible
+                messages.info(request, mark_safe(
+                    '<script>setTimeout(function() { '
+                    'document.querySelectorAll("[data-login-btn], [data-guest-only]").forEach(function(el) { '
+                    'el.style.display = ""; }); '
+                    'var container = document.querySelector(".flex.flex-col.sm\\\\:flex-row.gap-2.lg\\\\:gap-3"); '
+                    'if (container) container.style.display = ""; '
+                    '}, 100);</script>'
+                ))
                 return redirect('core:home')
 
-            # If table exists, continue with normal flow
+            # If table exists and has data, continue with normal flow
             return super().dispatch(request, *args, **kwargs)
 
         except DatabaseError as e:
@@ -92,6 +122,15 @@ class SafeLoginView(LoginView):
             # render a simple login form
             if 'django_site' in str(e):
                 messages.info(request, _("The site is still being set up. You'll be able to log in soon."))
+                # Add a JavaScript snippet to ensure buttons remain visible
+                messages.info(request, mark_safe(
+                    '<script>setTimeout(function() { '
+                    'document.querySelectorAll("[data-login-btn], [data-guest-only]").forEach(function(el) { '
+                    'el.style.display = ""; }); '
+                    'var container = document.querySelector(".flex.flex-col.sm\\\\:flex-row.gap-2.lg\\\\:gap-3"); '
+                    'if (container) container.style.display = ""; '
+                    '}, 100);</script>'
+                ))
                 return redirect('core:home')
             # For other database errors, re-raise
             raise
