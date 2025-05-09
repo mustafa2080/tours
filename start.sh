@@ -33,6 +33,12 @@ echo "Setting up initial data..."
 # Create site data
 echo "Creating site data..."
 python create_site_data.py
+# Load fixtures
+echo "Loading initial data from fixtures..."
+python manage.py loaddata core/fixtures/initial_data.json
+# Fix site table
+echo "Fixing site table..."
+python manage.py fix_site_table
 # Setup other initial data
 python manage.py setup_site
 python manage.py setup_currencies
