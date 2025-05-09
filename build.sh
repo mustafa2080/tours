@@ -6,8 +6,14 @@ set -o errexit
 pip install -r requirements.txt
 
 # Install frontend dependencies and build
-npm install
-npm run build
+# Check if npm is available
+if command -v npm &> /dev/null; then
+    echo "Installing npm dependencies..."
+    npm install
+    npm run build
+else
+    echo "npm not found, skipping frontend build"
+fi
 
 # Collect static files
 python manage.py collectstatic --no-input

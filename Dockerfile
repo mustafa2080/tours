@@ -6,32 +6,27 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
-    default-libmysqlclient-dev \
     gcc \
     git \
     libpq-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Node.js and npm
-RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
-    && apt-get install -y nodejs \
-    && npm install -g npm@latest
-
-# Copy requirements and build script first
-COPY requirements.txt build.sh ./
-
-# Make build.sh executable
-RUN chmod +x ./build.sh
-
-# Copy package.json for npm dependencies
-COPY package*.json ./
+# Copy requirements first for better caching
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application
 COPY . .
 
-# Run the build script
-RUN ./build.sh
+# Make build.sh executable
+RUN chmod +x ./build.sh
+
+# Collect static files
+RUN python manage.py collectstatic --no-input --clear
+
+# Apply database migrations
+RUN python manage.py migrate
 
 # Expose port
 EXPOSE 8000
