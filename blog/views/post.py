@@ -20,45 +20,124 @@ class PostListView(ListView):
     paginate_by = POSTS_PER_PAGE
 
     def get_queryset(self):
-        # Filter only published posts
-        # modeltranslation handles fetching the correct language fields automatically
-        queryset = Post.objects.filter(is_published=True).select_related('author')
+        """Check if the blog_post table exists before querying"""
+        try:
+            # Check if the Post table exists
+            from django.db import connection
+            with connection.cursor() as cursor:
+                try:
+                    cursor.execute("SELECT 1 FROM blog_post LIMIT 1")
+                    post_table_exists = True
+                except Exception:
+                    post_table_exists = False
 
-        # Add filtering by category or tag if needed
-        category_slug = self.kwargs.get('category_slug')
-        tag_slug = self.kwargs.get('tag_slug')
-        if category_slug:
-            category = get_object_or_404(Category, slug=category_slug)
-            queryset = queryset.filter(categories=category)
-        if tag_slug:
-            tag = get_object_or_404(Tag, slug=tag_slug)
-            queryset = queryset.filter(tags=tag)
+            if not post_table_exists:
+                # Return an empty queryset if the table doesn't exist
+                return Post.objects.none()
 
-        # Add search functionality
-        search_query = self.request.GET.get('search', '')
-        if search_query:
-            queryset = queryset.filter(
-                models.Q(title__icontains=search_query) |
-                models.Q(content__icontains=search_query) |
-                models.Q(excerpt__icontains=search_query)
-            )
+            # If table exists, continue with normal query
+            # Filter only published posts
+            # modeltranslation handles fetching the correct language fields automatically
+            queryset = Post.objects.filter(is_published=True).select_related('author')
 
-        return queryset
+            # Add filtering by category or tag if needed
+            category_slug = self.kwargs.get('category_slug')
+            tag_slug = self.kwargs.get('tag_slug')
+            if category_slug:
+                try:
+                    # Check if the Category table exists
+                    cursor.execute("SELECT 1 FROM blog_category LIMIT 1")
+                    category_table_exists = True
+                except Exception:
+                    category_table_exists = False
+
+                if category_table_exists:
+                    category = get_object_or_404(Category, slug=category_slug)
+                    queryset = queryset.filter(categories=category)
+
+            if tag_slug:
+                try:
+                    # Check if the Tag table exists
+                    cursor.execute("SELECT 1 FROM blog_tag LIMIT 1")
+                    tag_table_exists = True
+                except Exception:
+                    tag_table_exists = False
+
+                if tag_table_exists:
+                    tag = get_object_or_404(Tag, slug=tag_slug)
+                    queryset = queryset.filter(tags=tag)
+
+            # Add search functionality
+            search_query = self.request.GET.get('search', '')
+            if search_query:
+                queryset = queryset.filter(
+                    models.Q(title__icontains=search_query) |
+                    models.Q(content__icontains=search_query) |
+                    models.Q(excerpt__icontains=search_query)
+                )
+
+            return queryset
+
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error in PostListView: {e}")
+            return Post.objects.none()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Use Category.objects.all() directly, modeltranslation handles name
-        context['categories'] = Category.objects.all()
-        context['tags'] = Tag.objects.all()
-        # Add category/tag object to context if filtering
-        category_slug = self.kwargs.get('category_slug')
-        tag_slug = self.kwargs.get('tag_slug')
-        if category_slug:
-            context['category'] = get_object_or_404(Category, slug=category_slug)
-        if tag_slug:
-            context['tag'] = get_object_or_404(Tag, slug=tag_slug)
-        # Add search query to context
-        context['search_query'] = self.request.GET.get('search', '')
+
+        try:
+            # Check if the Category and Tag tables exist
+            from django.db import connection
+            with connection.cursor() as cursor:
+                try:
+                    cursor.execute("SELECT 1 FROM blog_category LIMIT 1")
+                    category_table_exists = True
+                except Exception:
+                    category_table_exists = False
+
+                try:
+                    cursor.execute("SELECT 1 FROM blog_tag LIMIT 1")
+                    tag_table_exists = True
+                except Exception:
+                    tag_table_exists = False
+
+            # Only query if tables exist
+            if category_table_exists:
+                # Use Category.objects.all() directly, modeltranslation handles name
+                context['categories'] = Category.objects.all()
+            else:
+                context['categories'] = []
+
+            if tag_table_exists:
+                context['tags'] = Tag.objects.all()
+            else:
+                context['tags'] = []
+
+            # Add category/tag object to context if filtering
+            category_slug = self.kwargs.get('category_slug')
+            tag_slug = self.kwargs.get('tag_slug')
+
+            if category_slug and category_table_exists:
+                context['category'] = get_object_or_404(Category, slug=category_slug)
+
+            if tag_slug and tag_table_exists:
+                context['tag'] = get_object_or_404(Tag, slug=tag_slug)
+
+            # Add search query to context
+            context['search_query'] = self.request.GET.get('search', '')
+
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error in PostListView.get_context_data: {e}")
+
+            # Set default values
+            context['categories'] = []
+            context['tags'] = []
+            context['search_query'] = self.request.GET.get('search', '')
+
         return context
 
 
@@ -69,32 +148,106 @@ class PostDetailView(FormMixin, DetailView):
     context_object_name = 'post'
     form_class = CommentForm # For comment submission
 
+    def dispatch(self, request, *args, **kwargs):
+        """Check if the blog_post table exists before processing the request"""
+        try:
+            # Check if the Post table exists
+            from django.db import connection
+            with connection.cursor() as cursor:
+                try:
+                    cursor.execute("SELECT 1 FROM blog_post LIMIT 1")
+                    post_table_exists = True
+                except Exception:
+                    post_table_exists = False
+
+            if not post_table_exists:
+                # Redirect to home page if the table doesn't exist
+                from django.shortcuts import redirect
+                return redirect('core:home')
+
+            return super().dispatch(request, *args, **kwargs)
+
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error in PostDetailView: {e}")
+            from django.shortcuts import redirect
+            return redirect('core:home')
+
     def get_queryset(self):
-        # Ensure we only show published posts, prefetch related data
-        # modeltranslation handles fetching the correct language fields
-        return Post.objects.filter(is_published=True).select_related('author').prefetch_related(
-            # No need to prefetch translations separately
-            models.Prefetch(
-                'comments',
-                queryset=Comment.objects.filter(approved=True, parent__isnull=True).select_related('author').prefetch_related('replies'), # Get top-level approved comments
-                to_attr='approved_comments'
-            )
-        )
+        try:
+            # Check if the Comment table exists
+            from django.db import connection
+            with connection.cursor() as cursor:
+                try:
+                    cursor.execute("SELECT 1 FROM blog_comment LIMIT 1")
+                    comment_table_exists = True
+                except Exception:
+                    comment_table_exists = False
+
+            # Ensure we only show published posts, prefetch related data
+            # modeltranslation handles fetching the correct language fields
+            queryset = Post.objects.filter(is_published=True).select_related('author')
+
+            if comment_table_exists:
+                queryset = queryset.prefetch_related(
+                    # No need to prefetch translations separately
+                    models.Prefetch(
+                        'comments',
+                        queryset=Comment.objects.filter(approved=True, parent__isnull=True).select_related('author').prefetch_related('replies'), # Get top-level approved comments
+                        to_attr='approved_comments'
+                    )
+                )
+
+            return queryset
+
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error in PostDetailView.get_queryset: {e}")
+            return Post.objects.none()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         post = self.get_object()
 
-        # Add view using the new unique view tracking system
-        post.add_view(self.request)
+        try:
+            # Add view using the new unique view tracking system
+            if hasattr(post, 'add_view'):
+                post.add_view(self.request)
+            else:
+                # Fallback to legacy method if add_view doesn't exist
+                if hasattr(post, 'increase_view_count'):
+                    post.increase_view_count()
 
-        # Add comment form to context
-        context['comment_form'] = self.get_form()
+            # Add comment form to context
+            context['comment_form'] = self.get_form()
 
-        # Add related posts (example: same category)
-        context['related_posts'] = Post.objects.filter(
-            is_published=True, categories__in=post.categories.all()
-        ).exclude(id=post.id).distinct()[:3]
+            # Check if the Category table exists
+            from django.db import connection
+            with connection.cursor() as cursor:
+                try:
+                    cursor.execute("SELECT 1 FROM blog_category LIMIT 1")
+                    category_table_exists = True
+                except Exception:
+                    category_table_exists = False
+
+            # Add related posts (example: same category)
+            if category_table_exists and hasattr(post, 'categories'):
+                context['related_posts'] = Post.objects.filter(
+                    is_published=True, categories__in=post.categories.all()
+                ).exclude(id=post.id).distinct()[:3]
+            else:
+                context['related_posts'] = []
+
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error in PostDetailView.get_context_data: {e}")
+
+            # Set default values
+            context['comment_form'] = self.get_form()
+            context['related_posts'] = []
 
         return context
 
@@ -138,24 +291,83 @@ class PostSearchView(ListView):
     paginate_by = POSTS_PER_PAGE
 
     def get_queryset(self):
-        # Get the search query from GET parameters
-        query = self.request.GET.get('search', '')
-        if query:
-            # Search in title, content, and excerpt
-            queryset = Post.objects.filter(
-                models.Q(title__icontains=query) |
-                models.Q(content__icontains=query) |
-                models.Q(excerpt__icontains=query),
-                is_published=True
-            ).select_related('author')
-        else:
-            # If no query, return empty queryset
-            queryset = Post.objects.none()
-        return queryset
+        """Check if the blog_post table exists before querying"""
+        try:
+            # Check if the Post table exists
+            from django.db import connection
+            with connection.cursor() as cursor:
+                try:
+                    cursor.execute("SELECT 1 FROM blog_post LIMIT 1")
+                    post_table_exists = True
+                except Exception:
+                    post_table_exists = False
+
+            if not post_table_exists:
+                # Return an empty queryset if the table doesn't exist
+                return Post.objects.none()
+
+            # Get the search query from GET parameters
+            query = self.request.GET.get('search', '')
+            if query:
+                # Search in title, content, and excerpt
+                queryset = Post.objects.filter(
+                    models.Q(title__icontains=query) |
+                    models.Q(content__icontains=query) |
+                    models.Q(excerpt__icontains=query),
+                    is_published=True
+                ).select_related('author')
+            else:
+                # If no query, return empty queryset
+                queryset = Post.objects.none()
+            return queryset
+
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error in PostSearchView: {e}")
+            return Post.objects.none()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['categories'] = Category.objects.all()
-        context['tags'] = Tag.objects.all()
-        context['search_query'] = self.request.GET.get('search', '')
+
+        try:
+            # Check if the Category and Tag tables exist
+            from django.db import connection
+            with connection.cursor() as cursor:
+                try:
+                    cursor.execute("SELECT 1 FROM blog_category LIMIT 1")
+                    category_table_exists = True
+                except Exception:
+                    category_table_exists = False
+
+                try:
+                    cursor.execute("SELECT 1 FROM blog_tag LIMIT 1")
+                    tag_table_exists = True
+                except Exception:
+                    tag_table_exists = False
+
+            # Only query if tables exist
+            if category_table_exists:
+                context['categories'] = Category.objects.all()
+            else:
+                context['categories'] = []
+
+            if tag_table_exists:
+                context['tags'] = Tag.objects.all()
+            else:
+                context['tags'] = []
+
+            # Add search query to context
+            context['search_query'] = self.request.GET.get('search', '')
+
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error in PostSearchView.get_context_data: {e}")
+
+            # Set default values
+            context['categories'] = []
+            context['tags'] = []
+            context['search_query'] = self.request.GET.get('search', '')
+
         return context
