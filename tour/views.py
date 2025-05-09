@@ -31,70 +31,92 @@ class TourListView(ListView):
     paginate_by = TOURS_PER_PAGE
 
     def get_queryset(self):
-        queryset = Tour.objects.filter(is_active=True)
+        """Check if the tour_tour table exists before querying"""
+        try:
+            # Check if the Tour table exists
+            from django.db import connection
+            with connection.cursor() as cursor:
+                try:
+                    cursor.execute("SELECT 1 FROM tour_tour LIMIT 1")
+                    tour_table_exists = True
+                except Exception:
+                    tour_table_exists = False
 
-        # Apply filters if provided
-        filters = {}
+            if not tour_table_exists:
+                # Return an empty queryset if the table doesn't exist
+                return Tour.objects.none()
 
-        # Search filter
-        search = self.request.GET.get('search')
-        if search:
-            queryset = queryset.filter(
-                Q(name__icontains=search) |
-                Q(description__icontains=search) |
-                Q(short_description__icontains=search) |
-                Q(destination__name__icontains=search) |
-                Q(destination__country__icontains=search) |
-                Q(destination__city__icontains=search)
-            )
+            # If table exists, continue with normal query
+            queryset = Tour.objects.filter(is_active=True)
 
-        # Destination filter
-        destination = self.request.GET.get('destination')
-        if destination:
-            filters['destination__slug'] = destination
+            # Apply filters if provided
+            filters = {}
 
-        # Category filter
-        category = self.request.GET.get('category')
-        if category:
-            filters['categories__slug'] = category
+            # Search filter
+            search = self.request.GET.get('search')
+            if search:
+                queryset = queryset.filter(
+                    Q(name__icontains=search) |
+                    Q(description__icontains=search) |
+                    Q(short_description__icontains=search) |
+                    Q(destination__name__icontains=search) |
+                    Q(destination__country__icontains=search) |
+                    Q(destination__city__icontains=search)
+                )
 
-        # Price range filter
-        min_price = self.request.GET.get('min_price')
-        max_price = self.request.GET.get('max_price')
-        if min_price:
-            filters['price__gte'] = min_price
-        if max_price:
-            filters['price__lte'] = max_price
+            # Destination filter
+            destination = self.request.GET.get('destination')
+            if destination:
+                filters['destination__slug'] = destination
 
-        # Duration filter - simple exact duration matching
-        duration = self.request.GET.get('duration')
-        if duration:
-            try:
-                duration_days = int(duration)
-                # All duration values are treated as exact matches
-                filters['duration_days'] = duration_days
-            except (ValueError, TypeError):
-                pass
+            # Category filter
+            category = self.request.GET.get('category')
+            if category:
+                filters['categories__slug'] = category
 
-        # Apply filters
-        if filters:
-            queryset = queryset.filter(**filters).distinct()
+            # Price range filter
+            min_price = self.request.GET.get('min_price')
+            max_price = self.request.GET.get('max_price')
+            if min_price:
+                filters['price__gte'] = min_price
+            if max_price:
+                filters['price__lte'] = max_price
 
-        # Sorting
-        sort_by = self.request.GET.get('sort', 'created_at')
-        if sort_by == 'price_low':
-            queryset = queryset.order_by('price')
-        elif sort_by == 'price_high':
-            queryset = queryset.order_by('-price')
-        elif sort_by == 'name':
-            queryset = queryset.order_by('name')
-        elif sort_by == 'popularity':
-            # Corrected related name for reviews
-            queryset = queryset.annotate(avg_rating=Avg('tour_reviews__rating')).order_by('-avg_rating')
-        else:
-            queryset = queryset.order_by('-created_at')
+            # Duration filter - simple exact duration matching
+            duration = self.request.GET.get('duration')
+            if duration:
+                try:
+                    duration_days = int(duration)
+                    # All duration values are treated as exact matches
+                    filters['duration_days'] = duration_days
+                except (ValueError, TypeError):
+                    pass
 
-        return queryset
+            # Apply filters
+            if filters:
+                queryset = queryset.filter(**filters).distinct()
+
+            # Sorting
+            sort_by = self.request.GET.get('sort', 'created_at')
+            if sort_by == 'price_low':
+                queryset = queryset.order_by('price')
+            elif sort_by == 'price_high':
+                queryset = queryset.order_by('-price')
+            elif sort_by == 'name':
+                queryset = queryset.order_by('name')
+            elif sort_by == 'popularity':
+                # Corrected related name for reviews
+                queryset = queryset.annotate(avg_rating=Avg('tour_reviews__rating')).order_by('-avg_rating')
+            else:
+                queryset = queryset.order_by('-created_at')
+
+            return queryset
+
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error in TourListView: {e}")
+            return Tour.objects.none()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -129,6 +151,32 @@ class TourDetailView(DetailView):
     model = Tour
     template_name = 'tour/tour_detail.html'
     context_object_name = 'tour'
+
+    def dispatch(self, request, *args, **kwargs):
+        """Check if the tour_tour table exists before processing the request"""
+        try:
+            # Check if the Tour table exists
+            from django.db import connection
+            with connection.cursor() as cursor:
+                try:
+                    cursor.execute("SELECT 1 FROM tour_tour LIMIT 1")
+                    tour_table_exists = True
+                except Exception:
+                    tour_table_exists = False
+
+            if not tour_table_exists:
+                # Redirect to home page if the table doesn't exist
+                from django.shortcuts import redirect
+                return redirect('core:home')
+
+            return super().dispatch(request, *args, **kwargs)
+
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error in TourDetailView: {e}")
+            from django.shortcuts import redirect
+            return redirect('core:home')
 
     def get(self, request, *args, **kwargs):
         response = super().get(request, *args, **kwargs)
@@ -324,11 +372,6 @@ class CategoryDetailView(DetailView):
         return context
 
 
-# Add this to your existing imports if not already there
-from django.views.generic import ListView
-from django.db.models import Q
-from .forms import TourSearchForm
-
 # Add this class to your views.py file
 class TourSearchView(ListView):
     """View for searching tours"""
@@ -338,23 +381,45 @@ class TourSearchView(ListView):
     paginate_by = 9  # Adjust as needed
 
     def get_queryset(self):
-        queryset = Tour.objects.filter(is_active=True)
+        """Check if the tour_tour table exists before querying"""
+        try:
+            # Check if the Tour table exists
+            from django.db import connection
+            with connection.cursor() as cursor:
+                try:
+                    cursor.execute("SELECT 1 FROM tour_tour LIMIT 1")
+                    tour_table_exists = True
+                except Exception:
+                    tour_table_exists = False
 
-        # Get the keyword from the request
-        keyword = self.request.GET.get('keyword', '')
+            if not tour_table_exists:
+                # Return an empty queryset if the table doesn't exist
+                return Tour.objects.none()
 
-        # If keyword exists, filter the queryset
-        if keyword:
-            queryset = queryset.filter(
-                Q(name__icontains=keyword) |
-                Q(description__icontains=keyword) |
-                Q(short_description__icontains=keyword) |
-                Q(destination__name__icontains=keyword) |
-                Q(destination__country__icontains=keyword) |
-                Q(destination__city__icontains=keyword)
-            )
+            # If table exists, continue with normal query
+            queryset = Tour.objects.filter(is_active=True)
 
-        return queryset
+            # Get the keyword from the request
+            keyword = self.request.GET.get('keyword', '')
+
+            # If keyword exists, filter the queryset
+            if keyword:
+                queryset = queryset.filter(
+                    Q(name__icontains=keyword) |
+                    Q(description__icontains=keyword) |
+                    Q(short_description__icontains=keyword) |
+                    Q(destination__name__icontains=keyword) |
+                    Q(destination__country__icontains=keyword) |
+                    Q(destination__city__icontains=keyword)
+                )
+
+            return queryset
+
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error in TourSearchView: {e}")
+            return Tour.objects.none()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -425,7 +490,31 @@ class FeaturedToursView(ListView):
     template_name = 'tour/featured_tours.html'
     context_object_name = 'tours'
     paginate_by = TOURS_PER_PAGE
-    queryset = Tour.objects.filter(is_active=True, is_featured=True)
+
+    def get_queryset(self):
+        """Check if the tour_tour table exists before querying"""
+        try:
+            # Check if the Tour table exists
+            from django.db import connection
+            with connection.cursor() as cursor:
+                try:
+                    cursor.execute("SELECT 1 FROM tour_tour LIMIT 1")
+                    tour_table_exists = True
+                except Exception:
+                    tour_table_exists = False
+
+            if not tour_table_exists:
+                # Return an empty queryset if the table doesn't exist
+                return Tour.objects.none()
+
+            # If table exists, continue with normal query
+            return Tour.objects.filter(is_active=True, is_featured=True)
+
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error in FeaturedToursView: {e}")
+            return Tour.objects.none()
 
 
 class PromotionsView(ListView):
