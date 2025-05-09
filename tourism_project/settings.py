@@ -396,6 +396,9 @@ if not DEBUG:
     SITE_URL = 'https://tourism-project-production.up.railway.app'
 SITE_NAME = 'Tourism Website'
 
+# Site domain for django.contrib.sites
+SITE_DOMAIN = 'tourism-project-production.up.railway.app' if not DEBUG else '127.0.0.1:8000'
+
 
 # Currency settings
 DEFAULT_CURRENCY_CODE = 'USD'

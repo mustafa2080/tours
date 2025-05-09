@@ -30,6 +30,10 @@ python manage.py inspectdb | grep -i "class SiteVisit" || echo "SiteVisit model 
 
 # Set up initial data
 echo "Setting up initial data..."
+# Create site data
+echo "Creating site data..."
+python create_site_data.py
+# Setup other initial data
 python manage.py setup_site
 python manage.py setup_currencies
 python manage.py setup_analytics

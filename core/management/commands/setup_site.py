@@ -1,40 +1,49 @@
 from django.core.management.base import BaseCommand
 from django.contrib.sites.models import Site
 from django.conf import settings
+from django.db import connection
 
 class Command(BaseCommand):
     help = 'Set up the default site domain'
 
     def handle(self, *args, **options):
-        # Get the site URL from settings
-        site_url = settings.SITE_URL
-        
-        # Remove protocol and trailing slash
-        if site_url.startswith('http://'):
-            domain = site_url[7:]
-        elif site_url.startswith('https://'):
-            domain = site_url[8:]
-        else:
-            domain = site_url
-            
-        if domain.endswith('/'):
-            domain = domain[:-1]
-            
+        # First, check if the django_site table exists
+        with connection.cursor() as cursor:
+            try:
+                cursor.execute("SELECT 1 FROM django_site LIMIT 1")
+                table_exists = True
+            except Exception:
+                table_exists = False
+
+        if not table_exists:
+            self.stdout.write(self.style.WARNING('django_site table does not exist. Running migrations...'))
+            from django.core.management import call_command
+            call_command('migrate', 'sites', verbosity=2)
+
+        # Get the site domain from settings
+        domain = getattr(settings, 'SITE_DOMAIN', 'example.com')
+        name = getattr(settings, 'SITE_NAME', 'Tourism Project')
+
         # Get or create the site with ID 1
-        site, created = Site.objects.get_or_create(
-            id=settings.SITE_ID,
-            defaults={
-                'domain': domain,
-                'name': settings.SITE_NAME
-            }
-        )
-        
-        # If site already exists, update it
-        if not created:
+        try:
+            site = Site.objects.get(id=settings.SITE_ID)
+            # Update the site
             site.domain = domain
-            site.name = settings.SITE_NAME
+            site.name = name
             site.save()
-            
-        self.stdout.write(
-            self.style.SUCCESS(f'Successfully set up site: {site.domain}')
-        )
+            self.stdout.write(self.style.SUCCESS(f'Updated site: {site.domain}'))
+        except Site.DoesNotExist:
+            # Create the site
+            site = Site.objects.create(
+                id=settings.SITE_ID,
+                domain=domain,
+                name=name
+            )
+            self.stdout.write(self.style.SUCCESS(f'Created site: {site.domain}'))
+
+        # Verify the site was created/updated
+        try:
+            site = Site.objects.get(id=settings.SITE_ID)
+            self.stdout.write(self.style.SUCCESS(f'Site verification successful: {site.domain}'))
+        except Site.DoesNotExist:
+            self.stdout.write(self.style.ERROR(f'Site verification failed: Site with ID {settings.SITE_ID} does not exist'))
