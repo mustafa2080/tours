@@ -2,9 +2,6 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic import ListView, DetailView, TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 import json # Import json
-from django.shortcuts import render, get_object_or_404, redirect
-from django.views.generic import ListView, DetailView, TemplateView
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.utils.translation import gettext_lazy as _
 from django.db.models import Q, Avg, F, Count, Min, Max # Import Count, Min, Max
@@ -120,28 +117,84 @@ class TourListView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['destinations'] = Destination.objects.filter(is_active=True)
-        context['categories'] = Category.objects.filter(is_active=True)
 
-        # Add filter parameters to context for the template
-        context['selected_destination'] = self.request.GET.get('destination', '')
-        context['selected_category'] = self.request.GET.get('category', '')
-        context['selected_min_price'] = self.request.GET.get('min_price', '0')
-        context['selected_max_price'] = self.request.GET.get('max_price', '10000')
-        context['selected_duration'] = self.request.GET.get('duration', '')
-        context['selected_sort'] = self.request.GET.get('sort', 'created_at')
-        context['search_query'] = self.request.GET.get('search', '')
-
-        # Get min and max price for the price range slider
+        # Check if tables exist before querying
         try:
-            min_db_price = Tour.objects.filter(is_active=True).aggregate(Min('price'))['price__min'] or 0
-            max_db_price = Tour.objects.filter(is_active=True).aggregate(Max('price'))['price__max'] or 10000
-            context['min_db_price'] = int(min_db_price)
-            context['max_db_price'] = int(max_db_price)
+            # Check if the Destination table exists
+            from django.db import connection
+            with connection.cursor() as cursor:
+                try:
+                    cursor.execute("SELECT 1 FROM tour_destination LIMIT 1")
+                    destination_table_exists = True
+                except Exception:
+                    destination_table_exists = False
+
+                # Check if the Category table exists
+                try:
+                    cursor.execute("SELECT 1 FROM tour_category LIMIT 1")
+                    category_table_exists = True
+                except Exception:
+                    category_table_exists = False
+
+                # Check if the Tour table exists
+                try:
+                    cursor.execute("SELECT 1 FROM tour_tour LIMIT 1")
+                    tour_table_exists = True
+                except Exception:
+                    tour_table_exists = False
+
+            # Only query if tables exist
+            if destination_table_exists:
+                context['destinations'] = Destination.objects.filter(is_active=True)
+            else:
+                context['destinations'] = []
+
+            if category_table_exists:
+                context['categories'] = Category.objects.filter(is_active=True)
+            else:
+                context['categories'] = []
+
+            # Add filter parameters to context for the template
+            context['selected_destination'] = self.request.GET.get('destination', '')
+            context['selected_category'] = self.request.GET.get('category', '')
+            context['selected_min_price'] = self.request.GET.get('min_price', '0')
+            context['selected_max_price'] = self.request.GET.get('max_price', '10000')
+            context['selected_duration'] = self.request.GET.get('duration', '')
+            context['selected_sort'] = self.request.GET.get('sort', 'created_at')
+            context['search_query'] = self.request.GET.get('search', '')
+
+            # Get min and max price for the price range slider
+            if tour_table_exists:
+                try:
+                    min_db_price = Tour.objects.filter(is_active=True).aggregate(Min('price'))['price__min'] or 0
+                    max_db_price = Tour.objects.filter(is_active=True).aggregate(Max('price'))['price__max'] or 10000
+                    context['min_db_price'] = int(min_db_price)
+                    context['max_db_price'] = int(max_db_price)
+                except Exception as e:
+                    context['min_db_price'] = 0
+                    context['max_db_price'] = 10000
+                    print(f"Error getting price range: {e}")
+            else:
+                context['min_db_price'] = 0
+                context['max_db_price'] = 10000
+
         except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error in TourListView.get_context_data: {e}")
+
+            # Set default values
+            context['destinations'] = []
+            context['categories'] = []
+            context['selected_destination'] = ''
+            context['selected_category'] = ''
+            context['selected_min_price'] = '0'
+            context['selected_max_price'] = '10000'
+            context['selected_duration'] = ''
+            context['selected_sort'] = 'created_at'
+            context['search_query'] = ''
             context['min_db_price'] = 0
             context['max_db_price'] = 10000
-            print(f"Error getting price range: {e}")
 
         return context
 
@@ -315,7 +368,31 @@ class DestinationListView(ListView):
     template_name = 'tour/destination_list.html'
     context_object_name = 'destinations'
     paginate_by = TOURS_PER_PAGE
-    queryset = Destination.objects.filter(is_active=True)
+
+    def get_queryset(self):
+        """Check if the tour_destination table exists before querying"""
+        try:
+            # Check if the Destination table exists
+            from django.db import connection
+            with connection.cursor() as cursor:
+                try:
+                    cursor.execute("SELECT 1 FROM tour_destination LIMIT 1")
+                    destination_table_exists = True
+                except Exception:
+                    destination_table_exists = False
+
+            if not destination_table_exists:
+                # Return an empty queryset if the table doesn't exist
+                return Destination.objects.none()
+
+            # If table exists, continue with normal query
+            return Destination.objects.filter(is_active=True)
+
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error in DestinationListView: {e}")
+            return Destination.objects.none()
 
 
 class DestinationDetailView(DetailView):
@@ -324,19 +401,76 @@ class DestinationDetailView(DetailView):
     template_name = 'tour/destination_detail.html'
     context_object_name = 'destination'
 
+    def dispatch(self, request, *args, **kwargs):
+        """Check if the tour_destination table exists before processing the request"""
+        try:
+            # Check if the Destination table exists
+            from django.db import connection
+            with connection.cursor() as cursor:
+                try:
+                    cursor.execute("SELECT 1 FROM tour_destination LIMIT 1")
+                    destination_table_exists = True
+                except Exception:
+                    destination_table_exists = False
+
+            if not destination_table_exists:
+                # Redirect to home page if the table doesn't exist
+                from django.shortcuts import redirect
+                return redirect('core:home')
+
+            return super().dispatch(request, *args, **kwargs)
+
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error in DestinationDetailView: {e}")
+            from django.shortcuts import redirect
+            return redirect('core:home')
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         destination = self.get_object()
 
-        # Get tours for this destination
-        tours = destination.tours.filter(is_active=True)
+        try:
+            # Check if the Tour table exists
+            from django.db import connection
+            with connection.cursor() as cursor:
+                try:
+                    cursor.execute("SELECT 1 FROM tour_tour LIMIT 1")
+                    tour_table_exists = True
+                except Exception:
+                    tour_table_exists = False
 
-        # Get categories for filter
-        categories = Category.objects.filter(tours__destination=destination).distinct()
+                # Check if the Category table exists
+                try:
+                    cursor.execute("SELECT 1 FROM tour_category LIMIT 1")
+                    category_table_exists = True
+                except Exception:
+                    category_table_exists = False
 
-        # Add to context
-        context['tours'] = tours
-        context['categories'] = categories
+            # Only query if tables exist
+            if tour_table_exists:
+                # Get tours for this destination
+                tours = destination.tours.filter(is_active=True)
+                context['tours'] = tours
+            else:
+                context['tours'] = []
+
+            if category_table_exists and tour_table_exists:
+                # Get categories for filter
+                categories = Category.objects.filter(tours__destination=destination).distinct()
+                context['categories'] = categories
+            else:
+                context['categories'] = []
+
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error in DestinationDetailView.get_context_data: {e}")
+
+            # Set default values
+            context['tours'] = []
+            context['categories'] = []
 
         return context
 
@@ -346,7 +480,31 @@ class CategoryListView(ListView):
     model = Category
     template_name = 'tour/category_list.html'
     context_object_name = 'categories'
-    queryset = Category.objects.filter(is_active=True)
+
+    def get_queryset(self):
+        """Check if the tour_category table exists before querying"""
+        try:
+            # Check if the Category table exists
+            from django.db import connection
+            with connection.cursor() as cursor:
+                try:
+                    cursor.execute("SELECT 1 FROM tour_category LIMIT 1")
+                    category_table_exists = True
+                except Exception:
+                    category_table_exists = False
+
+            if not category_table_exists:
+                # Return an empty queryset if the table doesn't exist
+                return Category.objects.none()
+
+            # If table exists, continue with normal query
+            return Category.objects.filter(is_active=True)
+
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error in CategoryListView: {e}")
+            return Category.objects.none()
 
 
 class CategoryDetailView(DetailView):
@@ -355,19 +513,76 @@ class CategoryDetailView(DetailView):
     template_name = 'tour/category_detail.html'
     context_object_name = 'category'
 
+    def dispatch(self, request, *args, **kwargs):
+        """Check if the tour_category table exists before processing the request"""
+        try:
+            # Check if the Category table exists
+            from django.db import connection
+            with connection.cursor() as cursor:
+                try:
+                    cursor.execute("SELECT 1 FROM tour_category LIMIT 1")
+                    category_table_exists = True
+                except Exception:
+                    category_table_exists = False
+
+            if not category_table_exists:
+                # Redirect to home page if the table doesn't exist
+                from django.shortcuts import redirect
+                return redirect('core:home')
+
+            return super().dispatch(request, *args, **kwargs)
+
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error in CategoryDetailView: {e}")
+            from django.shortcuts import redirect
+            return redirect('core:home')
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         category = self.get_object()
 
-        # Get tours in this category
-        tours = category.tours.filter(is_active=True)
+        try:
+            # Check if the Tour table exists
+            from django.db import connection
+            with connection.cursor() as cursor:
+                try:
+                    cursor.execute("SELECT 1 FROM tour_tour LIMIT 1")
+                    tour_table_exists = True
+                except Exception:
+                    tour_table_exists = False
 
-        # Get destinations for filter
-        destinations = Destination.objects.filter(tours__categories=category).distinct()
+                # Check if the Destination table exists
+                try:
+                    cursor.execute("SELECT 1 FROM tour_destination LIMIT 1")
+                    destination_table_exists = True
+                except Exception:
+                    destination_table_exists = False
 
-        # Add to context
-        context['tours'] = tours
-        context['destinations'] = destinations
+            # Only query if tables exist
+            if tour_table_exists:
+                # Get tours in this category
+                tours = category.tours.filter(is_active=True)
+                context['tours'] = tours
+            else:
+                context['tours'] = []
+
+            if destination_table_exists and tour_table_exists:
+                # Get destinations for filter
+                destinations = Destination.objects.filter(tours__categories=category).distinct()
+                context['destinations'] = destinations
+            else:
+                context['destinations'] = []
+
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error in CategoryDetailView.get_context_data: {e}")
+
+            # Set default values
+            context['tours'] = []
+            context['destinations'] = []
 
         return context
 
